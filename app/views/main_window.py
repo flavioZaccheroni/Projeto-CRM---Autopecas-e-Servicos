@@ -6,6 +6,7 @@ from app.views.compra_view import CompraFrame
 from app.views.crud_view import CrudFrame
 from app.views.estoque_view import EstoqueFrame
 from app.views.module_configs import CADASTRO_MODULES
+from app.views.venda_view import VendaFrame
 
 
 class MainWindow:
@@ -38,6 +39,7 @@ class MainWindow:
             "Produtos",
             "Estoque",
             "Compras",
+            "Vendas",
             "Usuarios",
             "Permissoes",
             "Configuracoes",
@@ -91,6 +93,9 @@ class MainWindow:
             return
         if nome == "Compras":
             CompraFrame(self.content, self.usuario).pack(fill="both", expand=True)
+            return
+        if nome == "Vendas":
+            VendaFrame(self.content, self.usuario).pack(fill="both", expand=True)
             return
         frame = ttk.Frame(self.content, padding=24)
         frame.pack(fill="both", expand=True)

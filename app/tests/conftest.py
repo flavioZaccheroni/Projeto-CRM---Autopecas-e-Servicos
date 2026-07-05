@@ -9,13 +9,16 @@ from app.models import (  # noqa: F401
     Compra,
     Estoque,
     Fornecedor,
+    FinanceiroLancamento,
     ItemCompra,
+    ItemVenda,
     MarcaProduto,
     MovimentacaoEstoque,
     Perfil,
     Permissao,
     Produto,
     Usuario,
+    Venda,
     Veiculo,
 )
 

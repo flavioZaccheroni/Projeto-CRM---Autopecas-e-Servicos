@@ -32,13 +32,16 @@ def create_database() -> None:
         compra,
         estoque,
         fornecedor,
+        financeiro_lancamento,
         item_compra,
+        item_venda,
         marca_produto,
         movimentacao_estoque,
         perfil,
         permissao,
         produto,
         usuario,
+        venda,
         veiculo,
     )
 
