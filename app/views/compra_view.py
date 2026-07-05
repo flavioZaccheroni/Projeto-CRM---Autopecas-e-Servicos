@@ -2,11 +2,12 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from app.controllers.compra_controller import CompraController
+from app.views.theme import format_value
 
 
 class CompraFrame(ttk.Frame):
     def __init__(self, master, usuario) -> None:
-        super().__init__(master, padding=16)
+        super().__init__(master, padding=22, style="Surface.TFrame")
         self.usuario = usuario
         self.controller = CompraController()
         self.compra_inputs = {
@@ -22,30 +23,41 @@ class CompraFrame(ttk.Frame):
             "valor_unitario": tk.StringVar(),
         }
 
-        ttk.Label(self, text="Compras", font=("Segoe UI", 16, "bold")).pack(anchor="w", pady=(0, 12))
+        ttk.Label(self, text="Compras", style="Header.TLabel").pack(anchor="w")
+        ttk.Label(self, text="Registre pedidos, adicione itens e receba mercadorias com entrada automatica em estoque.", style="Subtle.TLabel").pack(anchor="w", pady=(4, 14))
         self._criar_form_compra()
         self._criar_form_item()
-        self.tree = ttk.Treeview(self, columns=["id", "fornecedor_id", "numero", "data_compra", "status", "valor_total"], show="headings", height=12)
+        table_frame = ttk.LabelFrame(self, text="Pedidos", padding=10, style="Section.TLabelframe")
+        table_frame.pack(fill="both", expand=True)
+        self.tree = ttk.Treeview(table_frame, columns=["id", "fornecedor_id", "numero", "data_compra", "status", "valor_total"], show="headings", height=12)
         for column in ["id", "fornecedor_id", "numero", "data_compra", "status", "valor_total"]:
             self.tree.heading(column, text=column.replace("_", " ").title())
-        self.tree.pack(fill="both", expand=True)
+            self.tree.column(column, width=140, anchor="w")
+        yscroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=yscroll.set)
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        yscroll.grid(row=0, column=1, sticky="ns")
+        table_frame.columnconfigure(0, weight=1)
+        table_frame.rowconfigure(0, weight=1)
         self.tree.bind("<<TreeviewSelect>>", self._selecionar)
         self.carregar()
 
     def _criar_form_compra(self) -> None:
-        form = ttk.LabelFrame(self, text="Pedido de compra", padding=10)
+        form = ttk.LabelFrame(self, text="Pedido de compra", padding=14, style="Section.TLabelframe")
         form.pack(fill="x", pady=(0, 8))
         for index, (name, label) in enumerate([("fornecedor_id", "Fornecedor ID"), ("numero", "Numero"), ("data_compra", "Data AAAA-MM-DD"), ("status", "Status")]):
             ttk.Label(form, text=label).grid(row=0, column=index * 2, padx=(0, 6), sticky="w")
             ttk.Entry(form, textvariable=self.compra_inputs[name], width=18).grid(row=0, column=index * 2 + 1, padx=(0, 12))
-        ttk.Button(form, text="Criar compra", command=self.criar_compra).grid(row=0, column=8)
+            form.columnconfigure(index * 2 + 1, weight=1)
+        ttk.Button(form, text="Criar compra", command=self.criar_compra, style="Primary.TButton").grid(row=0, column=8)
 
     def _criar_form_item(self) -> None:
-        form = ttk.LabelFrame(self, text="Itens e recebimento", padding=10)
+        form = ttk.LabelFrame(self, text="Itens e recebimento", padding=14, style="Section.TLabelframe")
         form.pack(fill="x", pady=(0, 12))
         for index, (name, label) in enumerate([("compra_id", "Compra ID"), ("produto_id", "Produto ID"), ("quantidade", "Quantidade"), ("valor_unitario", "Valor unitario")]):
             ttk.Label(form, text=label).grid(row=0, column=index * 2, padx=(0, 6), sticky="w")
             ttk.Entry(form, textvariable=self.item_inputs[name], width=16).grid(row=0, column=index * 2 + 1, padx=(0, 12))
+            form.columnconfigure(index * 2 + 1, weight=1)
         ttk.Button(form, text="Adicionar item", command=self.adicionar_item).grid(row=0, column=8, padx=(0, 8))
         ttk.Button(form, text="Receber compra", command=self.receber_compra).grid(row=0, column=9)
 
@@ -80,7 +92,7 @@ class CompraFrame(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         for item in self.controller.listar():
-            self.tree.insert("", "end", iid=str(item.id), values=[item.id, item.fornecedor_id, item.numero, item.data_compra, item.status, item.valor_total])
+            self.tree.insert("", "end", iid=str(item.id), values=[format_value(item.id), format_value(item.fornecedor_id), format_value(item.numero), format_value(item.data_compra), format_value(item.status), format_value(item.valor_total)])
 
     def _selecionar(self, _event) -> None:
         selection = self.tree.selection()

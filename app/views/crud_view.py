@@ -1,18 +1,23 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from app.views.theme import format_value
+
 
 class CrudFrame(ttk.Frame):
     def __init__(self, master, title: str, controller, fields: list[dict], columns: list[str]) -> None:
-        super().__init__(master, padding=16)
+        super().__init__(master, padding=22, style="Surface.TFrame")
         self.controller = controller
         self.fields = fields
         self.columns = columns
         self.inputs: dict[str, tk.Variable] = {}
 
-        ttk.Label(self, text=title, font=("Segoe UI", 16, "bold")).pack(anchor="w", pady=(0, 12))
+        header = ttk.Frame(self, style="Surface.TFrame")
+        header.pack(fill="x", pady=(0, 14))
+        ttk.Label(header, text=title, style="Header.TLabel").pack(anchor="w")
+        ttk.Label(header, text="Cadastre, edite e consulte registros deste modulo.", style="Subtle.TLabel").pack(anchor="w", pady=(4, 0))
 
-        form = ttk.Frame(self)
+        form = ttk.LabelFrame(self, text="Dados do registro", padding=14, style="Section.TLabelframe")
         form.pack(fill="x")
         for index, field in enumerate(fields):
             row = index // 3
@@ -25,18 +30,29 @@ class CrudFrame(ttk.Frame):
             else:
                 widget = ttk.Entry(form, textvariable=variable, width=24)
             widget.grid(row=row, column=col + 1, sticky="ew", padx=(0, 14), pady=4)
+            form.columnconfigure(col + 1, weight=1)
 
-        actions = ttk.Frame(self)
+        actions = ttk.Frame(self, style="Surface.TFrame")
         actions.pack(fill="x", pady=12)
         ttk.Button(actions, text="Novo", command=self.limpar).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Salvar", command=self.salvar).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text="Salvar", command=self.salvar, style="Primary.TButton").pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="Atualizar", command=self.carregar).pack(side="left")
 
-        self.tree = ttk.Treeview(self, columns=columns, show="headings", height=14)
+        table_frame = ttk.LabelFrame(self, text="Registros", padding=10, style="Section.TLabelframe")
+        table_frame.pack(fill="both", expand=True)
+
+        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=14)
         for column in columns:
             self.tree.heading(column, text=column.replace("_", " ").title())
             self.tree.column(column, width=120, anchor="w")
-        self.tree.pack(fill="both", expand=True)
+        yscroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        xscroll = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll.grid(row=1, column=0, sticky="ew")
+        table_frame.columnconfigure(0, weight=1)
+        table_frame.rowconfigure(0, weight=1)
         self.tree.bind("<<TreeviewSelect>>", self._selecionar)
 
         self.itens: dict[str, object] = {}
@@ -47,7 +63,7 @@ class CrudFrame(ttk.Frame):
             self.tree.delete(row)
         self.itens.clear()
         for item in self.controller.listar():
-            values = [getattr(item, column, "") for column in self.columns]
+            values = [format_value(getattr(item, column, "")) for column in self.columns]
             item_id = str(getattr(item, "id"))
             self.itens[item_id] = item
             self.tree.insert("", "end", iid=item_id, values=values)

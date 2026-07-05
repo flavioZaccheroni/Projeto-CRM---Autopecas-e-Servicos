@@ -6,17 +6,21 @@ from app.views.compra_view import CompraFrame
 from app.views.crud_view import CrudFrame
 from app.views.estoque_view import EstoqueFrame
 from app.views.module_configs import CADASTRO_MODULES
+from app.views.theme import COLORS, configure_style
 from app.views.venda_view import VendaFrame
 
 
 class MainWindow:
     def __init__(self, usuario) -> None:
         self.usuario = usuario
+        self.active_button: tk.Button | None = None
         self.root = tk.Tk()
         self.root.title(APP_NAME)
-        self.root.geometry("1160x680")
+        self.root.geometry("1280x760")
+        self.root.minsize(1100, 680)
+        configure_style(self.root)
 
-        sidebar = tk.Frame(self.root, width=220, bg="#263238")
+        sidebar = tk.Frame(self.root, width=240, bg=COLORS["sidebar"])
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
@@ -24,57 +28,96 @@ class MainWindow:
             sidebar,
             text="ERP Autopecas",
             fg="white",
-            bg="#263238",
-            font=("Segoe UI", 13, "bold"),
+            bg=COLORS["sidebar"],
+            font=("Segoe UI", 15, "bold"),
             pady=18,
         ).pack(fill="x")
+        tk.Label(
+            sidebar,
+            text="Operacao integrada",
+            fg=COLORS["sidebar_muted"],
+            bg=COLORS["sidebar"],
+            font=("Segoe UI", 9),
+        ).pack(fill="x", pady=(0, 14))
 
-        menu_items = [
-            "Dashboard",
-            "Clientes",
-            "Veiculos",
-            "Fornecedores",
-            "Categorias",
-            "Marcas",
-            "Produtos",
-            "Estoque",
-            "Compras",
-            "Vendas",
-            "Usuarios",
-            "Permissoes",
-            "Configuracoes",
+        menu_groups = [
+            ("Principal", ["Dashboard"]),
+            ("Cadastros", ["Clientes", "Veiculos", "Fornecedores", "Categorias", "Marcas", "Produtos"]),
+            ("Operacao", ["Estoque", "Compras", "Vendas"]),
+            ("Sistema", ["Usuarios", "Permissoes", "Configuracoes"]),
         ]
-        for modulo in menu_items:
-            tk.Button(
+        self.menu_buttons: dict[str, tk.Button] = {}
+        for group_name, items in menu_groups:
+            tk.Label(
                 sidebar,
-                text=modulo,
+                text=group_name.upper(),
+                fg=COLORS["sidebar_muted"],
+                bg=COLORS["sidebar"],
+                font=("Segoe UI", 8, "bold"),
                 anchor="w",
-                relief="flat",
-                command=lambda nome=modulo: self.abrir_modulo(nome),
-            ).pack(fill="x", padx=12, pady=4)
+            ).pack(fill="x", padx=18, pady=(12, 5))
+            for modulo in items:
+                button = tk.Button(
+                    sidebar,
+                    text=modulo,
+                    anchor="w",
+                    relief="flat",
+                    bd=0,
+                    padx=14,
+                    pady=9,
+                    fg=COLORS["sidebar_text"],
+                    bg=COLORS["sidebar"],
+                    activeforeground="#ffffff",
+                    activebackground=COLORS["sidebar_hover"],
+                    font=("Segoe UI", 10),
+                    command=lambda nome=modulo: self.abrir_modulo(nome),
+                )
+                button.pack(fill="x", padx=12, pady=2)
+                self.menu_buttons[modulo] = button
 
-        self.content = ttk.Frame(self.root)
+        self.content = ttk.Frame(self.root, style="App.TFrame")
         self.content.pack(side="left", fill="both", expand=True)
         self.abrir_dashboard()
 
     def abrir_dashboard(self) -> None:
         self._limpar_content()
-        frame = ttk.Frame(self.content, padding=24)
+        self._ativar_menu("Dashboard")
+        frame = ttk.Frame(self.content, padding=26, style="Surface.TFrame")
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="ERP CRM Autopecas & Servicos", font=("Segoe UI", 18, "bold")).pack(anchor="w")
+        ttk.Label(frame, text="ERP CRM Autopecas & Servicos", style="Header.TLabel").pack(anchor="w")
         ttk.Label(
             frame,
             text=f"Usuario logado: {self.usuario.nome} | Perfil: {self.usuario.perfil.nome}",
-            font=("Segoe UI", 10),
-        ).pack(anchor="w", pady=(8, 20))
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(6, 24))
+
+        cards = ttk.Frame(frame, style="Surface.TFrame")
+        cards.pack(fill="x", pady=(0, 18))
+        for index, (title, value, detail) in enumerate(
+            [
+                ("Fases entregues", "1 a 5", "Base, cadastros, estoque, compras e vendas"),
+                ("Fluxos ativos", "3", "Estoque, compras e vendas com regras de negocio"),
+                ("Proxima etapa", "Fase 6", "Ordem de servico"),
+            ]
+        ):
+            card = ttk.LabelFrame(cards, text=title, padding=16, style="Section.TLabelframe")
+            card.grid(row=0, column=index, sticky="nsew", padx=(0, 12))
+            ttk.Label(card, text=value, font=("Segoe UI", 20, "bold")).pack(anchor="w")
+            ttk.Label(card, text=detail, style="Subtle.TLabel", wraplength=260).pack(anchor="w", pady=(6, 0))
+            cards.columnconfigure(index, weight=1)
+
+        workflow = ttk.LabelFrame(frame, text="Fluxo operacional atual", padding=16, style="Section.TLabelframe")
+        workflow.pack(fill="x")
         ttk.Label(
-            frame,
-            text="Fases 2 a 4: cadastros basicos, estoque e compras.",
-            font=("Segoe UI", 11),
+            workflow,
+            text="Cadastre clientes e produtos, alimente o estoque por compras ou ajuste, finalize vendas para baixar saldo e gerar contas a receber.",
+            style="Subtle.TLabel",
+            wraplength=820,
         ).pack(anchor="w")
 
     def abrir_modulo(self, nome: str) -> None:
         self._limpar_content()
+        self._ativar_menu(nome)
         if nome == "Dashboard":
             self.abrir_dashboard()
             return
@@ -105,6 +148,14 @@ class MainWindow:
     def _limpar_content(self) -> None:
         for child in self.content.winfo_children():
             child.destroy()
+
+    def _ativar_menu(self, nome: str) -> None:
+        if self.active_button:
+            self.active_button.configure(bg=COLORS["sidebar"], fg=COLORS["sidebar_text"])
+        button = self.menu_buttons.get(nome)
+        if button:
+            button.configure(bg=COLORS["sidebar_active"], fg="#ffffff")
+            self.active_button = button
 
     def run(self) -> None:
         self.root.mainloop()
