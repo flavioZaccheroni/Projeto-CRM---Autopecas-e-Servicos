@@ -37,12 +37,14 @@ def create_database() -> None:
         item_venda,
         marca_produto,
         movimentacao_estoque,
+        ordem_servico,
         perfil,
         permissao,
         produto,
         usuario,
         venda,
         veiculo,
+        item_os,
     )
 
     Base.metadata.create_all(bind=engine)

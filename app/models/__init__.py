@@ -6,8 +6,10 @@ from app.models.fornecedor import Fornecedor
 from app.models.financeiro_lancamento import FinanceiroLancamento
 from app.models.item_compra import ItemCompra
 from app.models.item_venda import ItemVenda
+from app.models.item_os import ItemOS
 from app.models.marca_produto import MarcaProduto
 from app.models.movimentacao_estoque import MovimentacaoEstoque
+from app.models.ordem_servico import OrdemServico
 from app.models.perfil import Perfil
 from app.models.permissao import Permissao
 from app.models.produto import Produto
@@ -24,8 +26,10 @@ __all__ = [
     "FinanceiroLancamento",
     "ItemCompra",
     "ItemVenda",
+    "ItemOS",
     "MarcaProduto",
     "MovimentacaoEstoque",
+    "OrdemServico",
     "Perfil",
     "Permissao",
     "Produto",
