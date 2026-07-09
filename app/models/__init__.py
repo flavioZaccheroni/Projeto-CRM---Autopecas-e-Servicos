@@ -1,4 +1,5 @@
 from app.models.categoria_produto import CategoriaProduto
+from app.models.caixa_movimentacao import CaixaMovimentacao
 from app.models.cliente import Cliente
 from app.models.compra import Compra
 from app.models.estoque import Estoque
@@ -19,6 +20,7 @@ from app.models.veiculo import Veiculo
 
 __all__ = [
     "CategoriaProduto",
+    "CaixaMovimentacao",
     "Cliente",
     "Compra",
     "Estoque",

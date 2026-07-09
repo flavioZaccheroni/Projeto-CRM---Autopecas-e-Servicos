@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from app.database.database import Base
 from app.models import (  # noqa: F401
     CategoriaProduto,
+    CaixaMovimentacao,
     Cliente,
     Compra,
     Estoque,

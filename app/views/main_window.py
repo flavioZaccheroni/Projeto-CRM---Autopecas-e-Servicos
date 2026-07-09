@@ -5,6 +5,7 @@ from app.config.settings import APP_NAME
 from app.views.compra_view import CompraFrame
 from app.views.crud_view import CrudFrame
 from app.views.estoque_view import EstoqueFrame
+from app.views.financeiro_view import FinanceiroFrame
 from app.views.module_configs import CADASTRO_MODULES
 from app.views.os_view import OrdemServicoFrame
 from app.views.theme import COLORS, configure_style
@@ -44,7 +45,7 @@ class MainWindow:
         menu_groups = [
             ("Principal", ["Dashboard"]),
             ("Cadastros", ["Clientes", "Veiculos", "Fornecedores", "Categorias", "Marcas", "Produtos"]),
-            ("Operacao", ["Estoque", "Compras", "Vendas", "Ordem de Servico"]),
+            ("Operacao", ["Estoque", "Compras", "Vendas", "Ordem de Servico", "Financeiro"]),
             ("Sistema", ["Usuarios", "Permissoes", "Configuracoes"]),
         ]
         self.menu_buttons: dict[str, tk.Button] = {}
@@ -96,9 +97,9 @@ class MainWindow:
         cards.pack(fill="x", pady=(0, 18))
         for index, (title, value, detail) in enumerate(
             [
-                ("Fases entregues", "1 a 6", "Base, cadastros, estoque, compras, vendas e OS"),
-                ("Fluxos ativos", "4", "Estoque, compras, vendas e ordem de servico"),
-                ("Proxima etapa", "Fase 7", "Financeiro completo"),
+                ("Fases entregues", "1 a 7", "Base, operacao e financeiro"),
+                ("Fluxos ativos", "5", "Estoque, compras, vendas, OS e financeiro"),
+                ("Proxima etapa", "Fase 8", "Relatorios"),
             ]
         ):
             card = ttk.LabelFrame(cards, text=title, padding=16, style="Section.TLabelframe")
@@ -143,6 +144,9 @@ class MainWindow:
             return
         if nome == "Ordem de Servico":
             OrdemServicoFrame(self.content, self.usuario).pack(fill="both", expand=True)
+            return
+        if nome == "Financeiro":
+            FinanceiroFrame(self.content, self.usuario).pack(fill="both", expand=True)
             return
         frame = ttk.Frame(self.content, padding=24)
         frame.pack(fill="both", expand=True)

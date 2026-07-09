@@ -28,6 +28,7 @@ SessionLocal = sessionmaker(
 def create_database() -> None:
     from app.models import (  # noqa: F401
         categoria_produto,
+        caixa_movimentacao,
         cliente,
         compra,
         estoque,
