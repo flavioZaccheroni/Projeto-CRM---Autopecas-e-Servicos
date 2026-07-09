@@ -4,9 +4,11 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database.database import Base
 from app.models import (  # noqa: F401
+    Auditoria,
     CategoriaProduto,
     CaixaMovimentacao,
     Cliente,
+    Configuracao,
     Compra,
     Estoque,
     Fornecedor,

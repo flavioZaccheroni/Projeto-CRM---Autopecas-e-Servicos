@@ -30,6 +30,7 @@ def create_database() -> None:
         categoria_produto,
         caixa_movimentacao,
         cliente,
+        configuracao,
         compra,
         estoque,
         fornecedor,
@@ -46,6 +47,7 @@ def create_database() -> None:
         venda,
         veiculo,
         item_os,
+        auditoria,
     )
 
     Base.metadata.create_all(bind=engine)
