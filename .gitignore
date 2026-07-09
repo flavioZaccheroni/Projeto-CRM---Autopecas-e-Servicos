@@ -12,3 +12,4 @@ tools/
 logs/*.log
 backups/*.db
 backups/*.zip
+exports/
