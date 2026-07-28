@@ -13,3 +13,7 @@ logs/*.log
 backups/*.db
 backups/*.zip
 exports/
+build/
+dist/
+releases/
+*.spec
