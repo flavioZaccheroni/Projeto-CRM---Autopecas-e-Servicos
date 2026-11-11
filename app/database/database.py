@@ -43,6 +43,7 @@ def create_database() -> None:
         perfil,
         permissao,
         produto,
+        sequencia,
         usuario,
         venda,
         veiculo,
@@ -51,3 +52,6 @@ def create_database() -> None:
     )
 
     Base.metadata.create_all(bind=engine)
+    from app.database.migrations import aplicar_migracoes
+
+    aplicar_migracoes(engine)

@@ -22,6 +22,7 @@ from app.models import (  # noqa: F401
     Perfil,
     Permissao,
     Produto,
+    Sequencia,
     Usuario,
     Venda,
     Veiculo,

@@ -1,9 +1,10 @@
-from datetime import date
 from decimal import Decimal
 
 from app.models.caixa_movimentacao import CaixaMovimentacao
 from app.models.financeiro_lancamento import FinanceiroLancamento
 from app.repositories.financeiro_repository import CaixaMovimentacaoRepository, FinanceiroRepository
+from app.utils.datas import parse_data
+from app.utils.parcelas import gerar_parcelas
 from app.utils.validators import validar_obrigatorio
 
 
@@ -38,7 +39,7 @@ class FinanceiroService:
             fornecedor_id=_id_opcional(dados.get("fornecedor_id")),
             descricao=str(dados["descricao"]).strip(),
             valor=valor,
-            data_vencimento=_parse_data(dados.get("data_vencimento")),
+            data_vencimento=parse_data(dados.get("data_vencimento")),
             status=dados.get("status") or "ABERTO",
         )
         return self.financeiro_repository.salvar(lancamento)
@@ -49,10 +50,12 @@ class FinanceiroService:
             raise ValueError("Lancamento financeiro nao encontrado.")
         if lancamento.status == "PAGO":
             raise ValueError("Lancamento ja esta pago.")
+        if lancamento.status != "ABERTO":
+            raise ValueError(f"Lancamento {lancamento.status.lower()} nao pode ser baixado.")
         validar_obrigatorio(forma_pagamento, "Forma de pagamento")
 
         lancamento.status = "PAGO"
-        lancamento.data_pagamento = _parse_data(data_pagamento)
+        lancamento.data_pagamento = parse_data(data_pagamento)
         tipo_caixa = "ENTRADA" if lancamento.tipo == "RECEBER" else "SAIDA"
         self.caixa_repository.salvar(
             CaixaMovimentacao(
@@ -116,13 +119,65 @@ class FinanceiroService:
         }
 
 
-def _parse_data(valor) -> date:
-    if isinstance(valor, date):
-        return valor
-    if not valor:
-        return date.today()
-    return date.fromisoformat(str(valor))
-
-
 def _id_opcional(valor) -> int | None:
     return int(valor) if valor not in (None, "") else None
+
+
+def gerar_lancamentos(
+    repository: FinanceiroRepository,
+    tipo: str,
+    origem: str,
+    origem_id: int,
+    descricao: str,
+    valor: Decimal,
+    parcelas: int = 1,
+    primeiro_vencimento=None,
+    cliente_id: int | None = None,
+    fornecedor_id: int | None = None,
+) -> list[FinanceiroLancamento]:
+    """Cria 1..N lancamentos (parcelas) para um documento de origem (venda, OS ou compra)."""
+    vencimento = parse_data(primeiro_vencimento)
+    divisao = gerar_parcelas(Decimal(valor), parcelas, vencimento)
+    criados = []
+    for numero, (valor_parcela, data) in enumerate(divisao, start=1):
+        sufixo = f" ({numero}/{len(divisao)})" if len(divisao) > 1 else ""
+        criados.append(
+            repository.salvar(
+                FinanceiroLancamento(
+                    tipo=tipo,
+                    origem=origem,
+                    origem_id=origem_id,
+                    cliente_id=cliente_id,
+                    fornecedor_id=fornecedor_id,
+                    descricao=f"{descricao}{sufixo}",
+                    valor=valor_parcela,
+                    data_vencimento=data,
+                    status="ABERTO",
+                )
+            )
+        )
+    return criados
+
+
+def cancelar_lancamentos_origem(session, origem: str, origem_id: int, usuario_id: int | None = None) -> int:
+    """Cancela os lancamentos em aberto de um documento e estorna os ja pagos (movimentando o caixa)."""
+    from sqlalchemy import select
+
+    servico = FinanceiroService(FinanceiroRepository(session), CaixaMovimentacaoRepository(session))
+    lancamentos = list(
+        session.scalars(
+            select(FinanceiroLancamento).where(
+                FinanceiroLancamento.origem == origem, FinanceiroLancamento.origem_id == origem_id
+            )
+        )
+    )
+    afetados = 0
+    for lancamento in lancamentos:
+        if lancamento.status == "ABERTO":
+            lancamento.status = "CANCELADO"
+            afetados += 1
+        elif lancamento.status == "PAGO":
+            servico.estornar_lancamento(lancamento.id, usuario_id)
+            afetados += 1
+    session.flush()
+    return afetados

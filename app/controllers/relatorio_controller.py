@@ -6,9 +6,11 @@ from app.models.ordem_servico import OrdemServico
 from app.models.venda import Venda
 from app.repositories.base_repository import BaseRepository
 from app.services.relatorio_service import RelatorioService
+from app.utils.sessao import requer_permissao
 
 
 class RelatorioController:
+    @requer_permissao("relatorios", "ver")
     def gerar(self, tipo: str, formato: str):
         with SessionLocal() as session:
             service = RelatorioService(

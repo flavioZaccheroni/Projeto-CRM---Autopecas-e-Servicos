@@ -1,13 +1,20 @@
-from datetime import date, datetime
 from decimal import Decimal
 
-from app.models.financeiro_lancamento import FinanceiroLancamento
 from app.models.item_os import ItemOS
 from app.models.ordem_servico import OrdemServico
 from app.repositories.os_repository import ItemOSRepository, OrdemServicoRepository
 from app.repositories.venda_repository import FinanceiroLancamentoRepository
+from app.services._itens import recalcular_total
 from app.services.estoque_service import EstoqueService
+from app.services.financeiro_service import cancelar_lancamentos_origem, gerar_lancamentos
+from app.services.numeracao_service import NumeracaoService
+from app.services.venda_service import _forma_pagamento
+from app.utils.datas import parse_data_hora
+from app.utils.numeros import para_decimal
 from app.utils.validators import validar_obrigatorio
+
+
+STATUS_ABERTOS = {"ABERTA", "EM_ANDAMENTO", "AGUARDANDO_PECA", "AGUARDANDO_APROVACAO"}
 
 
 class OrdemServicoService:
@@ -23,18 +30,22 @@ class OrdemServicoService:
         self.financeiro_repository = financeiro_repository
         self.estoque_service = estoque_service
 
+    @property
+    def _session(self):
+        return self.os_repository.session
+
     def listar(self) -> list[OrdemServico]:
         return self.os_repository.listar()
 
     def abrir_os(self, dados: dict) -> OrdemServico:
         validar_obrigatorio(dados.get("cliente_id"), "Cliente")
         validar_obrigatorio(dados.get("veiculo_id"), "Veiculo")
-        validar_obrigatorio(dados.get("numero"), "Numero")
+        numero = str(dados.get("numero") or "").strip() or NumeracaoService(self._session).proximo("OS")
         ordem = OrdemServico(
             cliente_id=int(dados["cliente_id"]),
             veiculo_id=int(dados["veiculo_id"]),
-            numero=str(dados["numero"]).strip(),
-            data_abertura=_parse_data_hora(dados.get("data_abertura")),
+            numero=numero,
+            data_abertura=parse_data_hora(dados.get("data_abertura")),
             status=dados.get("status") or "ABERTA",
             defeito_relatado=(dados.get("defeito_relatado") or "").strip(),
             diagnostico=(dados.get("diagnostico") or "").strip(),
@@ -43,6 +54,7 @@ class OrdemServicoService:
         )
         return self.os_repository.salvar(ordem)
 
+    # -- itens ------------------------------------------------------------------------------
     def adicionar_item(
         self,
         os_id: int,
@@ -52,45 +64,60 @@ class OrdemServicoService:
         quantidade,
         valor_unitario,
     ) -> ItemOS:
-        ordem = self.os_repository.buscar_por_id(int(os_id))
-        if ordem is None:
-            raise ValueError("Ordem de servico nao encontrada.")
-        if ordem.status == "FINALIZADA":
-            raise ValueError("OS finalizada nao permite novos itens.")
-
-        tipo_normalizado = str(tipo or "").strip().upper()
-        if tipo_normalizado not in {"PECA", "SERVICO"}:
-            raise ValueError("Tipo do item deve ser PECA ou SERVICO.")
-        if tipo_normalizado == "PECA" and produto_id in (None, ""):
-            raise ValueError("Item de peca precisa ter produto.")
-        validar_obrigatorio(descricao, "Descricao")
-
-        quantidade_decimal = Decimal(str(quantidade).replace(",", "."))
-        valor_unitario_decimal = Decimal(str(valor_unitario).replace(",", "."))
-        if quantidade_decimal <= 0 or valor_unitario_decimal < 0:
-            raise ValueError("Quantidade e valor unitario invalidos.")
-
+        ordem = self._obter_editavel(os_id)
+        tipo_normalizado, produto, descricao_limpa, quantidade_decimal, valor_decimal = self._validar_item(
+            tipo, produto_id, descricao, quantidade, valor_unitario
+        )
         item = ItemOS(
             os_id=ordem.id,
             tipo=tipo_normalizado,
-            produto_id=int(produto_id) if produto_id not in (None, "") else None,
-            descricao=str(descricao).strip(),
+            produto_id=produto,
+            descricao=descricao_limpa,
             quantidade=quantidade_decimal,
-            valor_unitario=valor_unitario_decimal,
-            valor_total=quantidade_decimal * valor_unitario_decimal,
+            valor_unitario=valor_decimal,
+            valor_total=quantidade_decimal * valor_decimal,
         )
         self.item_repository.salvar(item)
         ordem.valor_total = Decimal(ordem.valor_total or 0) + item.valor_total
         return item
 
-    def finalizar_os(self, os_id: int, usuario_id: int | None = None, data_vencimento=None) -> OrdemServico:
-        ordem = self.os_repository.buscar_por_id(int(os_id))
-        if ordem is None:
-            raise ValueError("Ordem de servico nao encontrada.")
-        if not ordem.itens:
-            raise ValueError("OS precisa ter pelo menos um item para finalizacao.")
+    def atualizar_item(self, item_id: int, quantidade, valor_unitario) -> ItemOS:
+        item = self._obter_item(item_id)
+        ordem = self._obter_editavel(item.os_id)
+        quantidade_decimal = para_decimal(quantidade, "Quantidade")
+        valor_decimal = para_decimal(valor_unitario, "Valor unitario")
+        if quantidade_decimal <= 0 or valor_decimal < 0:
+            raise ValueError("Quantidade e valor unitario invalidos.")
+        item.quantidade = quantidade_decimal
+        item.valor_unitario = valor_decimal
+        item.valor_total = quantidade_decimal * valor_decimal
+        self.item_repository.salvar(item)
+        recalcular_total(self._session, ordem)
+        return item
+
+    def remover_item(self, item_id: int) -> None:
+        item = self._obter_item(item_id)
+        ordem = self._obter_editavel(item.os_id)
+        self.item_repository.excluir(item)
+        recalcular_total(self._session, ordem)
+
+    # -- ciclo de vida ----------------------------------------------------------------------
+    def finalizar_os(
+        self,
+        os_id: int,
+        usuario_id: int | None = None,
+        data_vencimento=None,
+        parcelas: int = 1,
+        forma_pagamento: str | None = None,
+    ) -> OrdemServico:
+        ordem = self._obter(os_id)
         if ordem.status == "FINALIZADA":
             raise ValueError("OS ja finalizada.")
+        if ordem.status not in STATUS_ABERTOS:
+            raise ValueError(f"OS {ordem.status.lower()} nao pode ser finalizada.")
+        if not ordem.itens:
+            raise ValueError("OS precisa ter pelo menos um item para finalizacao.")
+        forma = _forma_pagamento(forma_pagamento)
 
         for item in ordem.itens:
             if item.tipo == "PECA":
@@ -103,32 +130,72 @@ class OrdemServicoService:
                 )
 
         ordem.status = "FINALIZADA"
-        lancamento = FinanceiroLancamento(
+        ordem.forma_pagamento = forma
+        ordem.parcelas = (1 if parcelas in (None, "") else int(parcelas))
+        gerar_lancamentos(
+            self.financeiro_repository,
             tipo="RECEBER",
             origem="OS",
             origem_id=ordem.id,
-            cliente_id=ordem.cliente_id,
-            fornecedor_id=None,
             descricao=f"Ordem de servico {ordem.numero}",
             valor=ordem.valor_total,
-            data_vencimento=_parse_data(data_vencimento),
-            status="ABERTO",
+            parcelas=ordem.parcelas,
+            primeiro_vencimento=data_vencimento,
+            cliente_id=ordem.cliente_id,
         )
-        self.financeiro_repository.salvar(lancamento)
         return ordem
 
+    def cancelar_os(self, os_id: int, motivo: str, usuario_id: int | None = None) -> OrdemServico:
+        ordem = self._obter(os_id)
+        if ordem.status == "CANCELADA":
+            raise ValueError("OS ja cancelada.")
+        validar_obrigatorio(motivo, "Motivo do cancelamento")
 
-def _parse_data_hora(valor) -> datetime:
-    if isinstance(valor, datetime):
-        return valor
-    if not valor:
-        return datetime.utcnow()
-    return datetime.fromisoformat(str(valor))
+        if ordem.status == "FINALIZADA":
+            for item in ordem.itens:
+                if item.tipo == "PECA":
+                    self.estoque_service.movimentar(
+                        produto_id=item.produto_id,
+                        tipo="ENTRADA",
+                        quantidade=item.quantidade,
+                        origem=f"CANCELAMENTO OS:{ordem.numero}",
+                        usuario_id=usuario_id or ordem.usuario_id,
+                    )
+            cancelar_lancamentos_origem(self._session, "OS", ordem.id, usuario_id)
+        ordem.status = "CANCELADA"
+        ordem.motivo_cancelamento = motivo.strip()
+        return ordem
 
+    # -- internos ---------------------------------------------------------------------------
+    def _obter(self, os_id: int) -> OrdemServico:
+        ordem = self.os_repository.buscar_por_id(int(os_id))
+        if ordem is None:
+            raise ValueError("Ordem de servico nao encontrada.")
+        return ordem
 
-def _parse_data(valor) -> date:
-    if isinstance(valor, date):
-        return valor
-    if not valor:
-        return date.today()
-    return date.fromisoformat(str(valor))
+    def _obter_editavel(self, os_id: int) -> OrdemServico:
+        ordem = self._obter(os_id)
+        if ordem.status not in STATUS_ABERTOS:
+            raise ValueError(f"OS {ordem.status.lower()} nao permite alterar itens.")
+        return ordem
+
+    def _obter_item(self, item_id: int) -> ItemOS:
+        item = self.item_repository.buscar_por_id(int(item_id))
+        if item is None:
+            raise ValueError("Item nao encontrado.")
+        return item
+
+    @staticmethod
+    def _validar_item(tipo, produto_id, descricao, quantidade, valor_unitario):
+        tipo_normalizado = str(tipo or "").strip().upper()
+        if tipo_normalizado not in {"PECA", "SERVICO"}:
+            raise ValueError("Tipo do item deve ser PECA ou SERVICO.")
+        if tipo_normalizado == "PECA" and produto_id in (None, ""):
+            raise ValueError("Item de peca precisa ter produto.")
+        validar_obrigatorio(descricao, "Descricao")
+        quantidade_decimal = para_decimal(quantidade, "Quantidade")
+        valor_decimal = para_decimal(valor_unitario, "Valor unitario")
+        if quantidade_decimal <= 0 or valor_decimal < 0:
+            raise ValueError("Quantidade e valor unitario invalidos.")
+        produto = int(produto_id) if produto_id not in (None, "") else None
+        return tipo_normalizado, produto, str(descricao).strip(), quantidade_decimal, valor_decimal

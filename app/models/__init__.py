@@ -16,6 +16,7 @@ from app.models.ordem_servico import OrdemServico
 from app.models.perfil import Perfil
 from app.models.permissao import Permissao
 from app.models.produto import Produto
+from app.models.sequencia import Sequencia
 from app.models.usuario import Usuario
 from app.models.venda import Venda
 from app.models.veiculo import Veiculo
@@ -39,6 +40,7 @@ __all__ = [
     "Perfil",
     "Permissao",
     "Produto",
+    "Sequencia",
     "Usuario",
     "Venda",
     "Veiculo",

@@ -1,9 +1,9 @@
-from datetime import datetime
 from decimal import Decimal
 
 from app.models.estoque import Estoque
 from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.repositories.estoque_repository import EstoqueRepository, MovimentacaoEstoqueRepository
+from app.utils.datas import agora
 from app.utils.validators import validar_obrigatorio
 
 
@@ -58,7 +58,7 @@ class EstoqueService:
 
         estoque.quantidade_atual = saldo_posterior
         estoque.localizacao = localizacao or estoque.localizacao
-        estoque.atualizado_em = datetime.utcnow()
+        estoque.atualizado_em = agora()
         movimento = MovimentacaoEstoque(
             produto_id=int(produto_id),
             tipo=tipo_normalizado,

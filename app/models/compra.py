@@ -17,6 +17,7 @@ class Compra(Base):
     status: Mapped[str] = mapped_column(String(30), default="ABERTA", nullable=False)
     valor_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"))
+    motivo_cancelamento: Mapped[str | None] = mapped_column(String(255))
 
     fornecedor = relationship("Fornecedor", back_populates="compras")
     itens = relationship("ItemCompra", back_populates="compra", cascade="all, delete-orphan")
