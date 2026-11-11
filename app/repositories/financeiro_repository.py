@@ -7,6 +7,8 @@ from app.repositories.base_repository import BaseRepository
 
 
 class FinanceiroRepository(BaseRepository[FinanceiroLancamento]):
+    eager_load = ('cliente', 'fornecedor')
+
     def __init__(self, session: Session) -> None:
         super().__init__(session, FinanceiroLancamento)
 

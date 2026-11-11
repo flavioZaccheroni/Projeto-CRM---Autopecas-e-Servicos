@@ -2,8 +2,9 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from app.controllers.compra_controller import CompraController
+from app.controllers.lookup_controller import LookupController
 from app.views.helpers import ItensPanel, aplicar_permissao, executar, pedir_motivo
-from app.views.theme import format_value
+from app.views.widgets import IdVar, Seletor, TabelaFiltravel
 
 
 class CompraFrame(ttk.Frame):
@@ -11,16 +12,17 @@ class CompraFrame(ttk.Frame):
         super().__init__(master, padding=22, style="Surface.TFrame")
         self.usuario = usuario
         self.controller = CompraController()
+        lookups = LookupController()
         self.compra_inputs = {
-            "fornecedor_id": tk.StringVar(),
+            "fornecedor_id": IdVar(),
             "numero": tk.StringVar(),
             "data_compra": tk.StringVar(),
             "status": tk.StringVar(value="ABERTA"),
         }
         self.item_inputs = {
             "compra_id": tk.StringVar(),
-            "produto_id": tk.StringVar(),
-            "quantidade": tk.StringVar(),
+            "produto_id": IdVar(),
+            "quantidade": tk.StringVar(value="1"),
             "valor_unitario": tk.StringVar(),
         }
         self.fin_inputs = {"data_vencimento": tk.StringVar(), "parcelas": tk.StringVar(value="1")}
@@ -31,12 +33,12 @@ class CompraFrame(ttk.Frame):
             text="Receba mercadorias com entrada automatica em estoque e conta a pagar gerada. Numero em branco = automatico.",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(4, 10))
-        self._criar_form_compra()
-        self._criar_form_item()
+        self._criar_form_compra(lookups)
+        self._criar_form_item(lookups)
         self._criar_form_recebimento()
         self.itens_panel = ItensPanel(
             self,
-            ["id", "produto_id", "quantidade", "valor_unitario", "valor_total"],
+            ["id", "produto.descricao", "quantidade", "valor_unitario", "valor_total"],
             self.controller.listar_itens,
             self.controller.atualizar_item,
             self.controller.remover_item,
@@ -48,38 +50,41 @@ class CompraFrame(ttk.Frame):
 
         table_frame = ttk.LabelFrame(self, text="Pedidos", padding=10, style="Section.TLabelframe")
         table_frame.pack(fill="both", expand=True)
-        colunas = ["id", "fornecedor_id", "numero", "data_compra", "status", "valor_total"]
-        self.tree = ttk.Treeview(table_frame, columns=colunas, show="headings", height=8)
-        for column in colunas:
-            self.tree.heading(column, text=column.replace("_", " ").title())
-            self.tree.column(column, width=140, anchor="w")
-        yscroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=yscroll.set)
-        self.tree.grid(row=0, column=0, sticky="nsew")
-        yscroll.grid(row=0, column=1, sticky="ns")
-        table_frame.columnconfigure(0, weight=1)
-        table_frame.rowconfigure(0, weight=1)
-        self.tree.bind("<<TreeviewSelect>>", self._selecionar)
+        self.tabela = TabelaFiltravel(
+            table_frame,
+            ["id", "numero", "fornecedor", "data_compra", "status", "valor_total"],
+            altura=7,
+            larguras={"id": 50, "numero": 100, "fornecedor": 210},
+        )
+        self.tabela.pack(fill="both", expand=True)
+        self.tabela.ao_selecionar(self._selecionar)
         self.carregar()
 
-    def _criar_form_compra(self) -> None:
+    def _criar_form_compra(self, lookups) -> None:
         form = ttk.LabelFrame(self, text="Pedido de compra", padding=12, style="Section.TLabelframe")
         form.pack(fill="x", pady=(0, 6))
-        campos = [("fornecedor_id", "Fornecedor ID"), ("numero", "Numero (auto)"), ("data_compra", "Data AAAA-MM-DD"), ("status", "Status")]
-        for index, (name, label) in enumerate(campos):
+        ttk.Label(form, text="Fornecedor").grid(row=0, column=0, padx=(0, 6), sticky="w")
+        self.fornecedor_sel = Seletor(form, self.compra_inputs["fornecedor_id"], lookups.fornecedores, largura=30)
+        self.fornecedor_sel.grid(row=0, column=1, padx=(0, 10), sticky="ew")
+        campos = [("numero", "Numero (auto)"), ("data_compra", "Data AAAA-MM-DD"), ("status", "Status")]
+        for index, (name, label) in enumerate(campos, start=1):
             ttk.Label(form, text=label).grid(row=0, column=index * 2, padx=(0, 6), sticky="w")
             ttk.Entry(form, textvariable=self.compra_inputs[name], width=16).grid(row=0, column=index * 2 + 1, padx=(0, 10))
-            form.columnconfigure(index * 2 + 1, weight=1)
+        form.columnconfigure(1, weight=1)
         aplicar_permissao(ttk.Button(form, text="Criar compra", command=self.criar_compra, style="Primary.TButton"), "compras", "criar").grid(row=0, column=8)
 
-    def _criar_form_item(self) -> None:
-        form = ttk.LabelFrame(self, text="Itens", padding=12, style="Section.TLabelframe")
+    def _criar_form_item(self, lookups) -> None:
+        form = ttk.LabelFrame(self, text="Itens (selecione um pedido na tabela)", padding=12, style="Section.TLabelframe")
         form.pack(fill="x", pady=(0, 6))
-        campos = [("compra_id", "Compra ID"), ("produto_id", "Produto ID"), ("quantidade", "Quantidade"), ("valor_unitario", "Valor unitario")]
-        for index, (name, label) in enumerate(campos):
+        ttk.Label(form, text="Compra").grid(row=0, column=0, padx=(0, 6), sticky="w")
+        ttk.Entry(form, textvariable=self.item_inputs["compra_id"], width=8, state="readonly").grid(row=0, column=1, padx=(0, 10))
+        ttk.Label(form, text="Produto").grid(row=0, column=2, padx=(0, 6), sticky="w")
+        self.produto_sel = Seletor(form, self.item_inputs["produto_id"], lookups.produtos, largura=34)
+        self.produto_sel.grid(row=0, column=3, padx=(0, 10), sticky="ew")
+        for index, (name, label) in enumerate([("quantidade", "Qtd"), ("valor_unitario", "Custo unitario")], start=2):
             ttk.Label(form, text=label).grid(row=0, column=index * 2, padx=(0, 6), sticky="w")
-            ttk.Entry(form, textvariable=self.item_inputs[name], width=14).grid(row=0, column=index * 2 + 1, padx=(0, 10))
-            form.columnconfigure(index * 2 + 1, weight=1)
+            ttk.Entry(form, textvariable=self.item_inputs[name], width=12).grid(row=0, column=index * 2 + 1, padx=(0, 10))
+        form.columnconfigure(3, weight=1)
         aplicar_permissao(ttk.Button(form, text="Adicionar item", command=self.adicionar_item), "compras", "criar").grid(row=0, column=8)
 
     def _criar_form_recebimento(self) -> None:
@@ -93,7 +98,10 @@ class CompraFrame(ttk.Frame):
         aplicar_permissao(ttk.Button(form, text="Cancelar compra", command=self.cancelar), "compras", "excluir").grid(row=0, column=5)
 
     def _compra_id(self) -> int:
-        return int(self.item_inputs["compra_id"].get())
+        valor = self.item_inputs["compra_id"].get()
+        if not valor:
+            raise ValueError("Selecione um pedido na tabela.")
+        return int(valor)
 
     def criar_compra(self) -> None:
         executar(
@@ -103,7 +111,7 @@ class CompraFrame(ttk.Frame):
 
     def adicionar_item(self) -> None:
         executar(
-            lambda: self.controller.adicionar_item({n: v.get() for n, v in self.item_inputs.items()}),
+            lambda: self.controller.adicionar_item({"compra_id": self._compra_id(), **{n: v.get() for n, v in self.item_inputs.items() if n != "compra_id"}}),
             "Item adicionado.", "Compras",
             lambda: (self.carregar(), self.itens_panel.mostrar(self.item_inputs["compra_id"].get())),
         )
@@ -128,21 +136,22 @@ class CompraFrame(ttk.Frame):
             )
 
     def carregar(self) -> None:
-        for row in self.tree.get_children():
-            self.tree.delete(row)
         try:
             compras = self.controller.listar()
         except Exception as exc:
             messagebox.showerror("Erro", str(exc))
             return
-        for c in compras:
-            self.tree.insert(
-                "", "end", iid=str(c.id),
-                values=[format_value(x) for x in (c.id, c.fornecedor_id, c.numero, c.data_compra, c.status, c.valor_total)],
-            )
+        self.tabela.preencher(
+            [
+                (c.id, [c.id, c.numero, c.fornecedor.razao_social if c.fornecedor else "", c.data_compra, c.status, c.valor_total])
+                for c in compras
+            ]
+        )
+        self.fornecedor_sel.recarregar()
+        self.produto_sel.recarregar()
 
     def _selecionar(self, _event) -> None:
-        selection = self.tree.selection()
+        selection = self.tabela.selection()
         if selection:
             self.item_inputs["compra_id"].set(selection[0])
             self.itens_panel.mostrar(selection[0])

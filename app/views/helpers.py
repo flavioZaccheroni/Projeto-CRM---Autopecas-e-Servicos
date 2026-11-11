@@ -6,6 +6,7 @@ from tkinter import messagebox, simpledialog, ttk
 
 from app.utils.sessao import Sessao
 from app.views.theme import format_value
+from app.views.widgets import titulo_coluna, valor_coluna
 
 
 def aplicar_permissao(widget, modulo: str, acao: str):
@@ -56,7 +57,7 @@ class ItensPanel(ttk.LabelFrame):
         self._documento_id: int | None = None
         self.tree = ttk.Treeview(self, columns=colunas, show="headings", height=4)
         for coluna in colunas:
-            self.tree.heading(coluna, text=coluna.replace("_", " ").title())
+            self.tree.heading(coluna, text=titulo_coluna(coluna))
             self.tree.column(coluna, width=110, anchor="w")
         self.tree.grid(row=0, column=0, sticky="nsew")
         botoes = ttk.Frame(self, style="Surface.TFrame")
@@ -77,7 +78,7 @@ class ItensPanel(ttk.LabelFrame):
         except Exception:
             return
         for item in itens:
-            self.tree.insert("", "end", iid=str(item.id), values=[format_value(getattr(item, c, "")) for c in self._colunas])
+            self.tree.insert("", "end", iid=str(item.id), values=[format_value(valor_coluna(item, c)) for c in self._colunas])
 
     def _selecionado(self) -> int | None:
         selecao = self.tree.selection()

@@ -7,6 +7,8 @@ from app.repositories.base_repository import BaseRepository
 
 
 class EstoqueRepository(BaseRepository[Estoque]):
+    eager_load = ('produto',)
+
     def __init__(self, session: Session) -> None:
         super().__init__(session, Estoque)
 
@@ -15,6 +17,8 @@ class EstoqueRepository(BaseRepository[Estoque]):
 
 
 class MovimentacaoEstoqueRepository(BaseRepository[MovimentacaoEstoque]):
+    eager_load = ('produto',)
+
     def __init__(self, session: Session) -> None:
         super().__init__(session, MovimentacaoEstoque)
 

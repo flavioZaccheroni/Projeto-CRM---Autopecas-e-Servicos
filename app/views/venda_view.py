@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 
+from app.controllers.lookup_controller import LookupController
 from app.controllers.venda_controller import VendaController
 from app.views.helpers import FORMAS_PAGAMENTO, ItensPanel, aplicar_permissao, executar, pedir_motivo
-from app.views.theme import format_value
+from app.views.widgets import IdVar, Seletor, TabelaFiltravel
 
 
 class VendaFrame(ttk.Frame):
@@ -11,16 +12,17 @@ class VendaFrame(ttk.Frame):
         super().__init__(master, padding=22, style="Surface.TFrame")
         self.usuario = usuario
         self.controller = VendaController()
+        lookups = LookupController()
         self.venda_inputs = {
-            "cliente_id": tk.StringVar(),
+            "cliente_id": IdVar(),
             "numero": tk.StringVar(),
             "data_venda": tk.StringVar(),
             "status": tk.StringVar(value="ORCAMENTO"),
         }
         self.item_inputs = {
             "venda_id": tk.StringVar(),
-            "produto_id": tk.StringVar(),
-            "quantidade": tk.StringVar(),
+            "produto_id": IdVar(),
+            "quantidade": tk.StringVar(value="1"),
             "valor_unitario": tk.StringVar(),
         }
         self.fin_inputs = {
@@ -35,12 +37,12 @@ class VendaFrame(ttk.Frame):
             text="Orcamento -> aprovacao -> venda, com baixa de estoque, parcelamento e contas a receber. Numero em branco = automatico.",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(4, 10))
-        self._criar_form_venda()
-        self._criar_form_item()
+        self._criar_form_venda(lookups)
+        self._criar_form_item(lookups)
         self._criar_form_finalizacao()
         self.itens_panel = ItensPanel(
             self,
-            ["id", "produto_id", "quantidade", "valor_unitario", "valor_total"],
+            ["id", "produto.descricao", "quantidade", "valor_unitario", "valor_total"],
             self.controller.listar_itens,
             self.controller.atualizar_item,
             self.controller.remover_item,
@@ -52,39 +54,45 @@ class VendaFrame(ttk.Frame):
 
         table_frame = ttk.LabelFrame(self, text="Orcamentos e vendas", padding=10, style="Section.TLabelframe")
         table_frame.pack(fill="both", expand=True)
-        colunas = ["id", "cliente_id", "numero", "data_venda", "status", "parcelas", "forma_pagamento", "valor_total"]
-        self.tree = ttk.Treeview(table_frame, columns=colunas, show="headings", height=8)
-        for column in colunas:
-            self.tree.heading(column, text=column.replace("_", " ").title())
-            self.tree.column(column, width=120, anchor="w")
-        yscroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=yscroll.set)
-        self.tree.grid(row=0, column=0, sticky="nsew")
-        yscroll.grid(row=0, column=1, sticky="ns")
-        table_frame.columnconfigure(0, weight=1)
-        table_frame.rowconfigure(0, weight=1)
-        self.tree.bind("<<TreeviewSelect>>", self._selecionar)
+        self.tabela = TabelaFiltravel(
+            table_frame,
+            ["id", "numero", "cliente", "data_venda", "status", "parcelas", "forma_pagamento", "valor_total"],
+            altura=7,
+            larguras={"id": 50, "numero": 100, "cliente": 190},
+        )
+        self.tabela.pack(fill="both", expand=True)
+        self.tabela.ao_selecionar(self._selecionar)
         self.carregar()
 
-    def _criar_form_venda(self) -> None:
+    def _criar_form_venda(self, lookups) -> None:
         form = ttk.LabelFrame(self, text="Orcamento / venda", padding=12, style="Section.TLabelframe")
         form.pack(fill="x", pady=(0, 6))
-        fields = [("cliente_id", "Cliente ID"), ("numero", "Numero (auto)"), ("data_venda", "Data/hora ISO"), ("status", "Status")]
-        for index, (name, label) in enumerate(fields):
+        ttk.Label(form, text="Cliente").grid(row=0, column=0, padx=(0, 6), sticky="w")
+        self.cliente_sel = Seletor(form, self.venda_inputs["cliente_id"], lookups.clientes, largura=30)
+        self.cliente_sel.grid(row=0, column=1, padx=(0, 10), sticky="ew")
+        for index, (name, label) in enumerate([("numero", "Numero (auto)"), ("data_venda", "Data/hora ISO"), ("status", "Status")], start=1):
             ttk.Label(form, text=label).grid(row=0, column=index * 2, padx=(0, 6), sticky="w")
             ttk.Entry(form, textvariable=self.venda_inputs[name], width=16).grid(row=0, column=index * 2 + 1, padx=(0, 10))
-            form.columnconfigure(index * 2 + 1, weight=1)
+        form.columnconfigure(1, weight=1)
         aplicar_permissao(ttk.Button(form, text="Criar", command=self.criar_venda, style="Primary.TButton"), "vendas", "criar").grid(row=0, column=8)
 
-    def _criar_form_item(self) -> None:
-        form = ttk.LabelFrame(self, text="Itens", padding=12, style="Section.TLabelframe")
+    def _criar_form_item(self, lookups) -> None:
+        form = ttk.LabelFrame(self, text="Itens (selecione uma venda na tabela)", padding=12, style="Section.TLabelframe")
         form.pack(fill="x", pady=(0, 6))
-        fields = [("venda_id", "Venda ID"), ("produto_id", "Produto ID"), ("quantidade", "Quantidade"), ("valor_unitario", "Valor unitario")]
-        for index, (name, label) in enumerate(fields):
+        ttk.Label(form, text="Venda").grid(row=0, column=0, padx=(0, 6), sticky="w")
+        ttk.Entry(form, textvariable=self.item_inputs["venda_id"], width=8, state="readonly").grid(row=0, column=1, padx=(0, 10))
+        ttk.Label(form, text="Produto").grid(row=0, column=2, padx=(0, 6), sticky="w")
+        self.produto_sel = Seletor(form, self.item_inputs["produto_id"], lookups.produtos, largura=34, ao_escolher=self._produto_escolhido)
+        self.produto_sel.grid(row=0, column=3, padx=(0, 10), sticky="ew")
+        for index, (name, label) in enumerate([("quantidade", "Qtd"), ("valor_unitario", "Valor unitario")], start=2):
             ttk.Label(form, text=label).grid(row=0, column=index * 2, padx=(0, 6), sticky="w")
-            ttk.Entry(form, textvariable=self.item_inputs[name], width=14).grid(row=0, column=index * 2 + 1, padx=(0, 10))
-            form.columnconfigure(index * 2 + 1, weight=1)
+            ttk.Entry(form, textvariable=self.item_inputs[name], width=12).grid(row=0, column=index * 2 + 1, padx=(0, 10))
+        form.columnconfigure(3, weight=1)
         aplicar_permissao(ttk.Button(form, text="Adicionar item", command=self.adicionar_item), "vendas", "criar").grid(row=0, column=8)
+
+    def _produto_escolhido(self, opcao) -> None:
+        if opcao and opcao[2]:
+            self.item_inputs["valor_unitario"].set(opcao[2])  # sugere o preco de venda cadastrado
 
     def _criar_form_finalizacao(self) -> None:
         form = ttk.LabelFrame(self, text="Aprovacao, finalizacao e cancelamento", padding=12, style="Section.TLabelframe")
@@ -101,7 +109,10 @@ class VendaFrame(ttk.Frame):
         aplicar_permissao(ttk.Button(form, text="Cancelar", command=self.cancelar), "vendas", "excluir").grid(row=0, column=9)
 
     def _venda_id(self) -> int:
-        return int(self.item_inputs["venda_id"].get())
+        valor = self.item_inputs["venda_id"].get()
+        if not valor:
+            raise ValueError("Selecione uma venda na tabela.")
+        return int(valor)
 
     def criar_venda(self) -> None:
         executar(
@@ -110,10 +121,10 @@ class VendaFrame(ttk.Frame):
         )
 
     def adicionar_item(self) -> None:
-        def acao():
-            self.controller.adicionar_item({**{n: v.get() for n, v in self.item_inputs.items()}})
-
-        executar(acao, "Item adicionado.", "Vendas", lambda: (self.carregar(), self.itens_panel.mostrar(self.item_inputs["venda_id"].get())))
+        executar(
+            lambda: self.controller.adicionar_item({"venda_id": self._venda_id(), **{n: v.get() for n, v in self.item_inputs.items() if n != "venda_id"}}),
+            "Item adicionado.", "Vendas", lambda: (self.carregar(), self.itens_panel.mostrar(self.item_inputs["venda_id"].get())),
+        )
 
     def aprovar(self) -> None:
         executar(lambda: self.controller.aprovar_orcamento(self._venda_id()), "Orcamento aprovado.", "Vendas", self.carregar)
@@ -144,23 +155,22 @@ class VendaFrame(ttk.Frame):
             )
 
     def carregar(self) -> None:
-        for row in self.tree.get_children():
-            self.tree.delete(row)
         try:
             vendas = self.controller.listar()
         except Exception as exc:
-            from tkinter import messagebox
-
             messagebox.showerror("Erro", str(exc))
             return
-        for v in vendas:
-            self.tree.insert(
-                "", "end", iid=str(v.id),
-                values=[format_value(x) for x in (v.id, v.cliente_id, v.numero, v.data_venda, v.status, v.parcelas, v.forma_pagamento, v.valor_total)],
-            )
+        self.tabela.preencher(
+            [
+                (v.id, [v.id, v.numero, v.cliente.nome if v.cliente else "", v.data_venda, v.status, v.parcelas, v.forma_pagamento, v.valor_total])
+                for v in vendas
+            ]
+        )
+        self.cliente_sel.recarregar()
+        self.produto_sel.recarregar()
 
     def _selecionar(self, _event) -> None:
-        selection = self.tree.selection()
+        selection = self.tabela.selection()
         if selection:
             self.item_inputs["venda_id"].set(selection[0])
             self.itens_panel.mostrar(selection[0])

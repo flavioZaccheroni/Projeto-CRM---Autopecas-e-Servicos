@@ -3,7 +3,7 @@ from tkinter import messagebox, ttk
 
 from app.controllers.seguranca_controller import SegurancaController
 from app.views.helpers import aplicar_permissao
-from app.views.theme import format_value
+from app.views.widgets import TabelaFiltravel
 
 
 class SegurancaFrame(ttk.Frame):
@@ -48,16 +48,8 @@ class SegurancaFrame(ttk.Frame):
         self.backup_tree.bind("<<TreeviewSelect>>", self._selecionar_backup)
 
         columns = ["id", "usuario_id", "entidade", "entidade_id", "acao", "detalhes", "criado_em"]
-        self.auditoria_tree = ttk.Treeview(auditoria_frame, columns=columns, show="headings", height=8)
-        for column in columns:
-            self.auditoria_tree.heading(column, text=column.replace("_", " ").title())
-            self.auditoria_tree.column(column, width=130, anchor="w")
-        scroll = ttk.Scrollbar(auditoria_frame, orient="vertical", command=self.auditoria_tree.yview)
-        self.auditoria_tree.configure(yscrollcommand=scroll.set)
-        self.auditoria_tree.grid(row=0, column=0, sticky="nsew")
-        scroll.grid(row=0, column=1, sticky="ns")
-        auditoria_frame.columnconfigure(0, weight=1)
-        auditoria_frame.rowconfigure(0, weight=1)
+        self.auditoria_tabela = TabelaFiltravel(auditoria_frame, columns, altura=8, larguras={"id": 50, "detalhes": 360, "criado_em": 140})
+        self.auditoria_tabela.pack(fill="both", expand=True)
 
     def criar_backup(self) -> None:
         try:
@@ -85,26 +77,16 @@ class SegurancaFrame(ttk.Frame):
             messagebox.showerror("Erro", str(exc))
 
     def carregar(self) -> None:
-        for tree in [self.backup_tree, self.auditoria_tree]:
-            for row in tree.get_children():
-                tree.delete(row)
-
+        for row in self.backup_tree.get_children():
+            self.backup_tree.delete(row)
         for arquivo in self.controller.listar_backups():
             self.backup_tree.insert("", "end", values=[str(arquivo)])
-        for item in self.controller.listar_auditoria():
-            self.auditoria_tree.insert(
-                "",
-                "end",
-                values=[
-                    format_value(item.id),
-                    format_value(item.usuario_id),
-                    format_value(item.entidade),
-                    format_value(item.entidade_id),
-                    format_value(item.acao),
-                    format_value(item.detalhes),
-                    format_value(item.criado_em),
-                ],
-            )
+        self.auditoria_tabela.preencher(
+            [
+                (i.id, [i.id, i.usuario_id, i.entidade, i.entidade_id, i.acao, i.detalhes, i.criado_em])
+                for i in self.controller.listar_auditoria()
+            ]
+        )
 
     def _selecionar_backup(self, _event) -> None:
         selection = self.backup_tree.selection()

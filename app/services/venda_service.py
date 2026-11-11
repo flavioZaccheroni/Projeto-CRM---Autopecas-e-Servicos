@@ -94,7 +94,10 @@ class VendaService:
         recalcular_total(self._session, venda)
 
     def listar_itens(self, documento_id: int) -> list:
-        return list(self._obter(documento_id).itens)
+        itens = list(self._obter(documento_id).itens)
+        for item in itens:
+            item.produto  # carrega o produto antes de a sessao fechar
+        return itens
 
     # -- ciclo de vida ----------------------------------------------------------------------
     def aprovar_orcamento(self, venda_id: int) -> Venda:

@@ -85,6 +85,10 @@ class _Sessao:
             return True
         return acao in self.permissoes.get(modulo, set())
 
+    def exigir_autenticado(self) -> None:
+        if not self.autenticado:
+            raise PermissaoNegada("Faca login para continuar.")
+
     def exigir(self, modulo: str, acao: str) -> None:
         if not self.autenticado:
             raise PermissaoNegada("Faca login para continuar.")
