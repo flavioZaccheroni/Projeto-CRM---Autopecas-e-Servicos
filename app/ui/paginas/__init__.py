@@ -9,9 +9,10 @@ from PySide6.QtWidgets import QWidget
 
 
 def fabricas_de_paginas(usuario) -> dict[str, Callable[[], QWidget]]:
+    from app.ui.paginas.cadastros import fabricas_de_cadastros
     from app.ui.paginas.dashboard import PaginaDashboard
 
-    fabricas: dict[str, Callable[[], QWidget]] = {"Dashboard": lambda: PaginaDashboard(usuario)}
+    fabricas: dict[str, Callable[[], QWidget]] = {"Dashboard": lambda: PaginaDashboard(usuario), **fabricas_de_cadastros()}
     if os.environ.get("ERP_UI_GALERIA"):
         from app.ui.paginas.galeria import PaginaGaleria
 

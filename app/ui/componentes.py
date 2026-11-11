@@ -431,7 +431,8 @@ class TabelaDados(QWidget):
         self.tabela.verticalHeader().setVisible(False)
         self.tabela.verticalHeader().setDefaultSectionSize(42)
         cabecalho = self.tabela.horizontalHeader()
-        cabecalho.setStretchLastSection(True)
+        cabecalho.setStretchLastSection(False)
+        cabecalho.setMinimumSectionSize(56)
         cabecalho.setSectionsMovable(True)
         cabecalho.setHighlightSections(False)
         cabecalho.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -440,6 +441,11 @@ class TabelaDados(QWidget):
             self.tabela.setColumnWidth(indice, coluna.largura or 130)
             if coluna.tipo == "emblema":
                 self.tabela.setItemDelegateForColumn(indice, EmblemaDelegate(self.tabela))
+        # a coluna de texto mais larga absorve a sobra (ou o aperto) para a tabela caber sem rolagem horizontal
+        textos = [i for i, c in enumerate(colunas) if c.tipo == "texto"]
+        if textos:
+            mais_larga = max(textos, key=lambda i: colunas[i].largura or 130)
+            cabecalho.setSectionResizeMode(mais_larga, QHeaderView.ResizeMode.Stretch)
 
         self.vazio = EstadoVazio(vazio_titulo, vazio_texto)
         self.sem_resultado = EstadoVazio("Nenhum resultado", "Tente outras palavras ou limpe a busca.", "buscar")

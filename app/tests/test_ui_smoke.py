@@ -89,3 +89,50 @@ def test_dashboard_e_graficos(qapp, app_db):
     pagina.resize(1100, 800)
     pagina.recarregar()
     assert not pagina.grab().isNull()
+
+
+def test_formulario_le_e_preenche_valores(qapp):
+    from app.ui.formulario import Campo, Formulario
+
+    form = Formulario(
+        [
+            Campo("nome", "Nome"),
+            Campo("uf", "UF", "lista", ["SP", "RJ"], somente_lista=True, metade=True),
+            Campo("cliente_id", "Cliente", "busca", fonte=lambda: [(1, "Ana"), (2, "Beto")], metade=True),
+            Campo("unidade", "Unidade", "lista", ["UN", "PC"], padrao="UN"),
+            Campo("ativo", "Ativo", "bool"),
+        ]
+    )
+    avisos = []
+    form.alterado.connect(lambda: avisos.append(1))
+    form.preencher({"nome": "Maria", "uf": "RJ", "cliente_id": 2, "ativo": False})
+    assert not avisos  # preencher nao conta como alteracao do usuario
+    assert form.valores() == {"nome": "Maria", "uf": "RJ", "cliente_id": "2", "unidade": "", "ativo": False}
+    form.preencher(None)
+    assert form.valores()["ativo"] is True and form.valores()["unidade"] == "UN"
+    form.widgets["nome"].setText("x")
+    assert avisos
+
+
+def test_cadastro_cria_edita_e_valida(qapp, app_db):
+    from app.controllers.auth_controller import AuthController
+    from app.ui.paginas.cadastros import ESPECS, PaginaCadastro
+
+    AuthController().autenticar("admin", "admin123")
+    pagina = PaginaCadastro(ESPECS["Clientes"])
+    pagina.resize(1100, 700)
+    assert pagina.tabela.total() == 0
+    pagina.novo()
+    assert pagina.painel.aberto
+    pagina.formulario.widgets["nome"].setText("Maria Teste")
+    pagina.formulario.widgets["cpf_cnpj"].setText("123")  # invalido
+    pagina.salvar()
+    assert pagina.erro.text() and pagina.tabela.total() == 0
+    pagina.formulario.widgets["cpf_cnpj"].setText("52998224725")  # CPF valido
+    pagina.formulario.widgets["tipo_pessoa"].setCurrentText("PF")
+    pagina.salvar()
+    assert pagina.tabela.total() == 1 and not pagina.erro.text()
+    assert pagina._id_atual is not None  # segue editando o registro salvo
+    pagina._sujo = False
+    pagina.cancelar()
+    assert not pagina.painel._aberto

@@ -47,7 +47,25 @@ def cor_do_tom(tokens: dict[str, str], tom: str) -> tuple[str, str]:
     return tokens[forte], tokens[suave]
 
 
+def _svg_para_qss(nome: str, corpo: str, cor: str) -> str:
+    """Grava um SVG pequeno em arquivo temporario e devolve o caminho (QSS so aceita `url(arquivo)`)."""
+    import tempfile
+    from pathlib import Path
+
+    pasta = Path(tempfile.gettempdir()) / "erp_autopecas_ui"
+    pasta.mkdir(exist_ok=True)
+    arquivo = pasta / f"{nome}-{cor.lstrip('#')}.svg"
+    if not arquivo.exists():
+        arquivo.write_text(
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{cor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">{corpo}</svg>',
+            encoding="utf-8",
+        )
+    return arquivo.as_posix()
+
+
 def gerar_qss(t: dict[str, str]) -> str:
+    marca = _svg_para_qss("marca", '<path d="M5 12.5l4.5 4.5L19 7.5"/>', t["sobre_primaria"])
+    seta = _svg_para_qss("seta", '<path d="M6 9l6 6 6-6"/>', t["mudo"])
     return f"""
 * {{ font-family: "Segoe UI Variable Text", "Segoe UI", "Inter", sans-serif; font-size: 13px; color: {t['texto']}; }}
 QWidget {{ background: transparent; }}
@@ -94,11 +112,12 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDateEdit:focus, QTextEdit:foc
 QLineEdit[invalido="true"], QComboBox[invalido="true"] {{ border: 1px solid {t['perigo']}; }}
 QLineEdit:disabled, QComboBox:disabled {{ background: {t['superficie2']}; color: {t['mudo']}; }}
 QComboBox::drop-down {{ border: none; width: 26px; }}
+QComboBox::down-arrow {{ image: url({seta}); width: 14px; height: 14px; }}
 QComboBox QAbstractItemView {{ background: {t['superficie']}; border: 1px solid {t['borda_forte']}; border-radius: 8px; padding: 4px;
     selection-background-color: {t['primaria_suave']}; selection-color: {t['texto']}; outline: none; }}
 QCheckBox {{ spacing: 8px; }}
 QCheckBox::indicator {{ width: 18px; height: 18px; border-radius: 5px; border: 1px solid {t['borda_forte']}; background: {t['superficie']}; }}
-QCheckBox::indicator:checked {{ background: {t['primaria']}; border-color: {t['primaria']}; }}
+QCheckBox::indicator:checked {{ background: {t['primaria']}; border-color: {t['primaria']}; image: url({marca}); }}
 
 /* tabelas */
 QTableView {{ background: {t['superficie']}; alternate-background-color: {t['superficie2']}; border: 1px solid {t['borda']};
