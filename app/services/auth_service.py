@@ -4,7 +4,6 @@ from app.repositories.usuario_repository import UsuarioRepository
 from app.utils.datas import agora
 from app.utils.security import verificar_senha
 
-
 MAX_TENTATIVAS = 5
 MINUTOS_BLOQUEIO = 5
 

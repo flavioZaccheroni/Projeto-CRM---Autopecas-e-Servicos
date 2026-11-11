@@ -8,15 +8,15 @@ from app.models.cliente import Cliente
 from app.models.financeiro_lancamento import FinanceiroLancamento
 from app.models.ordem_servico import OrdemServico
 from app.models.produto import Produto
-from app.models.venda import Venda
 from app.models.veiculo import Veiculo
+from app.models.venda import Venda
 from app.repositories.estoque_repository import EstoqueRepository, MovimentacaoEstoqueRepository
+from app.repositories.financeiro_repository import CaixaMovimentacaoRepository, FinanceiroRepository
 from app.repositories.venda_repository import VendaRepository
 from app.services.dashboard_service import DashboardService, inicio_do_mes
 from app.services.estoque_service import EstoqueService
 from app.services.financeiro_service import FinanceiroService
 from app.services.lookup_service import LookupService
-from app.repositories.financeiro_repository import CaixaMovimentacaoRepository, FinanceiroRepository
 
 HOJE = date(2026, 11, 15)
 

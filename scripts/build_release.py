@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DIST_DIR = ROOT_DIR / "dist"
@@ -107,6 +107,11 @@ def _try_build_exe() -> Path | None:
         "--windowed",
         "--name",
         "ERP_Autopecas",
+        # scripts do Alembic sao lidos do disco em tempo de execucao: precisam ir junto
+        "--add-data",
+        f"{ROOT_DIR / 'app' / 'database' / 'alembic'}{os.pathsep}app/database/alembic",
+        "--hidden-import",
+        "alembic.runtime.migration",
         "main.py",
     ]
     result = subprocess.run(command, cwd=ROOT_DIR, check=False)

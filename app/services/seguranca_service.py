@@ -10,7 +10,6 @@ from app.models.configuracao import Configuracao
 from app.repositories.seguranca_repository import AuditoriaRepository, ConfiguracaoRepository
 from app.utils.validators import validar_obrigatorio
 
-
 logger = logging.getLogger(__name__)
 
 

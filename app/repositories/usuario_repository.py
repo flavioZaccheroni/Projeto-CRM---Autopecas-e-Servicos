@@ -1,6 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.usuario import Usuario
 

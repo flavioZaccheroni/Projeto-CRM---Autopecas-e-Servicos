@@ -1,9 +1,9 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 
 def agora() -> datetime:
     """Data/hora atual em UTC, sem tzinfo (compativel com as colunas DateTime do SQLite)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def parse_data(valor) -> date:

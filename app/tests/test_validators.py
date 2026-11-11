@@ -1,3 +1,6 @@
+from datetime import date
+from decimal import Decimal
+
 import pytest
 
 from app.utils.parcelas import gerar_parcelas
@@ -10,8 +13,6 @@ from app.utils.validators import (
     validar_telefone_opcional,
     validar_uf_opcional,
 )
-from datetime import date
-from decimal import Decimal
 
 
 def test_cpf_valido_e_invalido():

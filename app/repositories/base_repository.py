@@ -3,7 +3,6 @@ from typing import Generic, TypeVar
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-
 ModelT = TypeVar("ModelT")
 
 

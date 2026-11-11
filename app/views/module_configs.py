@@ -1,4 +1,3 @@
-from app.utils.validators import UFS
 from app.controllers.cadastro_controller import (
     CategoriaProdutoController,
     ClienteController,
@@ -7,7 +6,7 @@ from app.controllers.cadastro_controller import (
     ProdutoController,
     VeiculoController,
 )
-
+from app.utils.validators import UFS
 
 CADASTRO_MODULES = {
     "Clientes": {

@@ -1,6 +1,6 @@
+import html
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
-import html
 
 
 def export_xlsx(path: Path, title: str, headers: list[str], rows: list[list[object]]) -> Path:

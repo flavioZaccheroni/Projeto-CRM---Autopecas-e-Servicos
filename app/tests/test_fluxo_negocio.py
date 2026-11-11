@@ -9,6 +9,7 @@ from app.models.cliente import Cliente
 from app.models.fornecedor import Fornecedor
 from app.models.produto import Produto
 from app.models.veiculo import Veiculo
+from app.reports.os_pdf import gerar_pdf_os
 from app.repositories.compra_repository import CompraRepository, ItemCompraRepository
 from app.repositories.estoque_repository import EstoqueRepository, MovimentacaoEstoqueRepository
 from app.repositories.financeiro_repository import CaixaMovimentacaoRepository, FinanceiroRepository
@@ -18,7 +19,6 @@ from app.repositories.venda_repository import (
     ItemVendaRepository,
     VendaRepository,
 )
-from app.reports.os_pdf import gerar_pdf_os
 from app.services.compra_service import CompraService
 from app.services.estoque_service import EstoqueService
 from app.services.financeiro_service import FinanceiroService

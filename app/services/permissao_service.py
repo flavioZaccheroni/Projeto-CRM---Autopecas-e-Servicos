@@ -6,7 +6,6 @@ from app.models.permissao import Permissao
 from app.utils.sessao import ACOES, MODULOS
 from app.utils.validators import validar_obrigatorio
 
-
 PERFIL_ADMIN = "Administrador"
 
 # Perfis criados na instalacao: nome -> (descricao, {modulo: acoes})

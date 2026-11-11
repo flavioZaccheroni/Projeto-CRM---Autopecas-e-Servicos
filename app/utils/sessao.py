@@ -2,7 +2,6 @@
 
 from functools import wraps
 
-
 ACOES = ("ver", "criar", "editar", "excluir")
 
 MODULOS: dict[str, str] = {

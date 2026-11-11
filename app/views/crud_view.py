@@ -80,7 +80,7 @@ class CrudFrame(ttk.Frame):
             return
         linhas = []
         for item in registros:
-            item_id = str(getattr(item, "id"))
+            item_id = str(item.id)
             self.itens[item_id] = item
             linhas.append((item_id, [valor_coluna(item, coluna) for coluna in self.columns]))
         self.tabela.preencher(linhas)

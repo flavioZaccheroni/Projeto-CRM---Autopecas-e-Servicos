@@ -4,7 +4,7 @@ Sistema desktop inicial para autopecas, oficinas e servicos automotivos.
 
 ## Versao atual
 
-Fases 1 a 10 + Sprints 1 e 2 (seguranca e fluxo de negocio, `docs/SPRINTS_1_E_2.md`) + Sprint 3 (dashboard e UX, `docs/SPRINT_3.md`).
+Fases 1 a 10 + Sprints 1 e 2 (seguranca e fluxo de negocio, `docs/SPRINTS_1_E_2.md`) + Sprint 3 (dashboard e UX, `docs/SPRINT_3.md`) + Sprint 4 (Alembic, ruff, CI, testes de controllers, `docs/SPRINT_4.md`).
 
 Novidades:
 

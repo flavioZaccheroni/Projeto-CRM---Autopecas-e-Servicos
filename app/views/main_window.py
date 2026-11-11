@@ -8,7 +8,6 @@ from app.views.admin_views import ConfiguracoesFrame, PermissoesFrame, UsuariosF
 from app.views.compra_view import CompraFrame
 from app.views.crud_view import CrudFrame
 from app.views.dashboard_view import DashboardFrame
-from app.views.widgets import TabelaFiltravel
 from app.views.estoque_view import EstoqueFrame
 from app.views.financeiro_view import FinanceiroFrame
 from app.views.module_configs import CADASTRO_MODULES
@@ -17,6 +16,7 @@ from app.views.relatorio_view import RelatorioFrame
 from app.views.seguranca_view import SegurancaFrame
 from app.views.theme import COLORS, configure_style
 from app.views.venda_view import VendaFrame
+from app.views.widgets import TabelaFiltravel
 
 
 class MainWindow:

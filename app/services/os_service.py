@@ -4,15 +4,17 @@ from app.models.item_os import ItemOS
 from app.models.ordem_servico import OrdemServico
 from app.repositories.os_repository import ItemOSRepository, OrdemServicoRepository
 from app.repositories.venda_repository import FinanceiroLancamentoRepository
-from app.services._itens import recalcular_total
+from app.services._itens import (
+    carregar_produtos,
+    normalizar_forma_pagamento,
+    recalcular_total,
+    validar_quantidade_valor,
+)
 from app.services.estoque_service import EstoqueService
 from app.services.financeiro_service import cancelar_lancamentos_origem, gerar_lancamentos
 from app.services.numeracao_service import NumeracaoService
-from app.services.venda_service import _forma_pagamento
 from app.utils.datas import parse_data_hora
-from app.utils.numeros import para_decimal
 from app.utils.validators import validar_obrigatorio
-
 
 STATUS_ABERTOS = {"ABERTA", "EM_ANDAMENTO", "AGUARDANDO_PECA", "AGUARDANDO_APROVACAO"}
 
@@ -84,10 +86,7 @@ class OrdemServicoService:
     def atualizar_item(self, item_id: int, quantidade, valor_unitario) -> ItemOS:
         item = self._obter_item(item_id)
         ordem = self._obter_editavel(item.os_id)
-        quantidade_decimal = para_decimal(quantidade, "Quantidade")
-        valor_decimal = para_decimal(valor_unitario, "Valor unitario")
-        if quantidade_decimal <= 0 or valor_decimal < 0:
-            raise ValueError("Quantidade e valor unitario invalidos.")
+        quantidade_decimal, valor_decimal = validar_quantidade_valor(quantidade, valor_unitario)
         item.quantidade = quantidade_decimal
         item.valor_unitario = valor_decimal
         item.valor_total = quantidade_decimal * valor_decimal
@@ -102,10 +101,7 @@ class OrdemServicoService:
         recalcular_total(self._session, ordem)
 
     def listar_itens(self, documento_id: int) -> list:
-        itens = list(self._obter(documento_id).itens)
-        for item in itens:
-            item.produto  # carrega o produto antes de a sessao fechar
-        return itens
+        return carregar_produtos(list(self._obter(documento_id).itens))
 
     # -- ciclo de vida ----------------------------------------------------------------------
     def finalizar_os(
@@ -123,7 +119,7 @@ class OrdemServicoService:
             raise ValueError(f"OS {ordem.status.lower()} nao pode ser finalizada.")
         if not ordem.itens:
             raise ValueError("OS precisa ter pelo menos um item para finalizacao.")
-        forma = _forma_pagamento(forma_pagamento)
+        forma = normalizar_forma_pagamento(forma_pagamento)
 
         for item in ordem.itens:
             if item.tipo == "PECA":
@@ -199,9 +195,6 @@ class OrdemServicoService:
         if tipo_normalizado == "PECA" and produto_id in (None, ""):
             raise ValueError("Item de peca precisa ter produto.")
         validar_obrigatorio(descricao, "Descricao")
-        quantidade_decimal = para_decimal(quantidade, "Quantidade")
-        valor_decimal = para_decimal(valor_unitario, "Valor unitario")
-        if quantidade_decimal <= 0 or valor_decimal < 0:
-            raise ValueError("Quantidade e valor unitario invalidos.")
+        quantidade_decimal, valor_decimal = validar_quantidade_valor(quantidade, valor_unitario)
         produto = int(produto_id) if produto_id not in (None, "") else None
         return tipo_normalizado, produto, str(descricao).strip(), quantidade_decimal, valor_decimal

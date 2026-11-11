@@ -8,7 +8,6 @@ from app.services.permissao_service import PERFIL_ADMIN, PermissaoService
 from app.services.usuario_service import UsuarioService
 from app.utils.security import verificar_senha
 
-
 SENHA_INICIAL = "admin123"  # temporaria: o primeiro login exige a troca
 
 

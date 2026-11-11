@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from app.models.sequencia import Sequencia
 
-
 PREFIXOS = {"VENDA": "V", "OS": "OS", "COMPRA": "C"}
 
 

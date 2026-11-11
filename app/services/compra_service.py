@@ -3,12 +3,15 @@ from decimal import Decimal
 from app.models.compra import Compra
 from app.models.item_compra import ItemCompra
 from app.repositories.compra_repository import CompraRepository, ItemCompraRepository
-from app.services._itens import recalcular_total
+from app.services._itens import (
+    carregar_produtos,
+    recalcular_total,
+    validar_quantidade_valor,
+)
 from app.services.estoque_service import EstoqueService
 from app.services.financeiro_service import cancelar_lancamentos_origem, gerar_lancamentos
 from app.services.numeracao_service import NumeracaoService
 from app.utils.datas import parse_data
-from app.utils.numeros import para_decimal
 from app.utils.validators import validar_obrigatorio
 
 
@@ -48,10 +51,7 @@ class CompraService:
     # -- itens ------------------------------------------------------------------------------
     def adicionar_item(self, compra_id: int, produto_id: int, quantidade, valor_unitario) -> ItemCompra:
         compra = self._obter_editavel(compra_id)
-        quantidade_decimal = para_decimal(quantidade, "Quantidade")
-        valor_unitario_decimal = para_decimal(valor_unitario, "Valor unitario")
-        if quantidade_decimal <= 0 or valor_unitario_decimal < 0:
-            raise ValueError("Quantidade e valor unitario invalidos.")
+        quantidade_decimal, valor_unitario_decimal = validar_quantidade_valor(quantidade, valor_unitario)
 
         item = ItemCompra(
             compra_id=compra.id,
@@ -67,10 +67,7 @@ class CompraService:
     def atualizar_item(self, item_id: int, quantidade, valor_unitario) -> ItemCompra:
         item = self._obter_item(item_id)
         compra = self._obter_editavel(item.compra_id)
-        quantidade_decimal = para_decimal(quantidade, "Quantidade")
-        valor_unitario_decimal = para_decimal(valor_unitario, "Valor unitario")
-        if quantidade_decimal <= 0 or valor_unitario_decimal < 0:
-            raise ValueError("Quantidade e valor unitario invalidos.")
+        quantidade_decimal, valor_unitario_decimal = validar_quantidade_valor(quantidade, valor_unitario)
         item.quantidade = quantidade_decimal
         item.valor_unitario = valor_unitario_decimal
         item.valor_total = quantidade_decimal * valor_unitario_decimal
@@ -85,10 +82,7 @@ class CompraService:
         recalcular_total(self._session, compra)
 
     def listar_itens(self, documento_id: int) -> list:
-        itens = list(self._obter(documento_id).itens)
-        for item in itens:
-            item.produto  # carrega o produto antes de a sessao fechar
-        return itens
+        return carregar_produtos(list(self._obter(documento_id).itens))
 
     # -- ciclo de vida ----------------------------------------------------------------------
     def receber_compra(

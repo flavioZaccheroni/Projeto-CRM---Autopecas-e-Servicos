@@ -1,15 +1,14 @@
 """Migrador minimo e idempotente para bancos criados antes das Sprints 1 e 2.
 
 `create_all` cria tabelas novas, mas nao altera tabelas existentes. Este modulo adiciona as
-colunas novas quando elas ainda nao existem, sem apagar nenhum dado. Sera substituido por
-Alembic em uma etapa futura.
+colunas novas quando elas ainda nao existem, sem apagar nenhum dado. Roda dentro da
+migracao base do Alembic (`alembic/versions/0001_baseline.py`); mudancas futuras viram revisoes proprias.
 """
 
 import logging
 
 from sqlalchemy import inspect, text
-from sqlalchemy.engine import Engine
-
+from sqlalchemy.engine import Connection, Engine
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +35,13 @@ COLUNAS_NOVAS: dict[str, list[tuple[str, str]]] = {
 }
 
 
-def aplicar_migracoes(engine: Engine) -> list[str]:
+def aplicar_migracoes(destino: Engine | Connection) -> list[str]:
     """Adiciona colunas ausentes. Retorna a lista de colunas criadas (vazia se nada mudou)."""
     criadas: list[str] = []
-    inspector = inspect(engine)
+    inspector = inspect(destino)
     tabelas = set(inspector.get_table_names())
-    with engine.begin() as conn:
+
+    def aplicar(conn: Connection) -> None:
         for tabela, colunas in COLUNAS_NOVAS.items():
             if tabela not in tabelas:
                 continue
@@ -50,6 +50,12 @@ def aplicar_migracoes(engine: Engine) -> list[str]:
                 if nome not in existentes:
                     conn.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {nome} {ddl}"))
                     criadas.append(f"{tabela}.{nome}")
+
+    if isinstance(destino, Engine):
+        with destino.begin() as conn:
+            aplicar(conn)
+    else:
+        aplicar(destino)
     if criadas:
         logger.info("Migracao aplicou colunas: %s", ", ".join(criadas))
     return criadas

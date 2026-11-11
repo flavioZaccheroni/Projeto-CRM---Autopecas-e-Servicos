@@ -2,7 +2,6 @@ from datetime import date, datetime
 from decimal import Decimal
 from tkinter import ttk
 
-
 COLORS = {
     "app_bg": "#f4f6f8",
     "surface": "#ffffff",

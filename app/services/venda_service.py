@@ -7,18 +7,20 @@ from app.repositories.venda_repository import (
     ItemVendaRepository,
     VendaRepository,
 )
-from app.services._itens import recalcular_total
+from app.services._itens import (
+    carregar_produtos,
+    normalizar_forma_pagamento,
+    recalcular_total,
+    validar_quantidade_valor,
+)
 from app.services.estoque_service import EstoqueService
 from app.services.financeiro_service import cancelar_lancamentos_origem, gerar_lancamentos
 from app.services.numeracao_service import NumeracaoService
 from app.utils.datas import parse_data_hora
-from app.utils.numeros import para_decimal
 from app.utils.validators import validar_obrigatorio
-
 
 # Ciclo de vida: ORCAMENTO -> APROVADO -> FINALIZADA (ou RECUSADO / CANCELADA)
 STATUS_EDITAVEIS = {"ORCAMENTO", "APROVADO"}
-FORMAS_PAGAMENTO = ("DINHEIRO", "PIX", "CARTAO_DEBITO", "CARTAO_CREDITO", "BOLETO", "TRANSFERENCIA")
 
 
 class VendaService:
@@ -57,10 +59,7 @@ class VendaService:
     # -- itens ------------------------------------------------------------------------------
     def adicionar_item(self, venda_id: int, produto_id: int, quantidade, valor_unitario) -> ItemVenda:
         venda = self._obter_editavel(venda_id)
-        quantidade_decimal = para_decimal(quantidade, "Quantidade")
-        valor_unitario_decimal = para_decimal(valor_unitario, "Valor unitario")
-        if quantidade_decimal <= 0 or valor_unitario_decimal < 0:
-            raise ValueError("Quantidade e valor unitario invalidos.")
+        quantidade_decimal, valor_unitario_decimal = validar_quantidade_valor(quantidade, valor_unitario)
 
         item = ItemVenda(
             venda_id=venda.id,
@@ -76,10 +75,7 @@ class VendaService:
     def atualizar_item(self, item_id: int, quantidade, valor_unitario) -> ItemVenda:
         item = self._obter_item(item_id)
         venda = self._obter_editavel(item.venda_id)
-        quantidade_decimal = para_decimal(quantidade, "Quantidade")
-        valor_unitario_decimal = para_decimal(valor_unitario, "Valor unitario")
-        if quantidade_decimal <= 0 or valor_unitario_decimal < 0:
-            raise ValueError("Quantidade e valor unitario invalidos.")
+        quantidade_decimal, valor_unitario_decimal = validar_quantidade_valor(quantidade, valor_unitario)
         item.quantidade = quantidade_decimal
         item.valor_unitario = valor_unitario_decimal
         item.valor_total = quantidade_decimal * valor_unitario_decimal
@@ -94,10 +90,7 @@ class VendaService:
         recalcular_total(self._session, venda)
 
     def listar_itens(self, documento_id: int) -> list:
-        itens = list(self._obter(documento_id).itens)
-        for item in itens:
-            item.produto  # carrega o produto antes de a sessao fechar
-        return itens
+        return carregar_produtos(list(self._obter(documento_id).itens))
 
     # -- ciclo de vida ----------------------------------------------------------------------
     def aprovar_orcamento(self, venda_id: int) -> Venda:
@@ -133,7 +126,7 @@ class VendaService:
             raise ValueError(f"Venda {venda.status.lower()} nao pode ser finalizada.")
         if not venda.itens:
             raise ValueError("Venda precisa ter pelo menos um item para finalizacao.")
-        forma = _forma_pagamento(forma_pagamento)
+        forma = normalizar_forma_pagamento(forma_pagamento)
 
         for item in venda.itens:
             self.estoque_service.movimentar(
@@ -199,11 +192,3 @@ class VendaService:
             raise ValueError("Item nao encontrado.")
         return item
 
-
-def _forma_pagamento(valor: str | None) -> str | None:
-    if not valor or not str(valor).strip():
-        return None
-    forma = str(valor).strip().upper()
-    if forma not in FORMAS_PAGAMENTO:
-        raise ValueError(f"Forma de pagamento invalida. Use: {', '.join(FORMAS_PAGAMENTO)}.")
-    return forma
