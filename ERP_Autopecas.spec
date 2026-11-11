@@ -7,7 +7,7 @@ a = Analysis(
     binaries=[],
     # scripts do Alembic sao lidos do disco em tempo de execucao
     datas=[('app/database/alembic', 'app/database/alembic')],
-    hiddenimports=['alembic.runtime.migration', 'alembic.operations.toimpl'],
+    hiddenimports=['alembic.runtime.migration', 'alembic.operations.toimpl', 'app.database.migrations'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
