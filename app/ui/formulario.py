@@ -16,7 +16,7 @@ from app.ui.componentes import Seletor, rotulo
 class Campo:
     nome: str
     rotulo: str
-    tipo: str = "texto"  # texto | bool | lista | busca | data
+    tipo: str = "texto"  # texto | bool | lista | busca | data | senha
     opcoes: list[str] = field(default_factory=list)  # tipo lista
     fonte: Callable[[], list] | None = None  # tipo busca: devolve [(id, nome)]
     somente_lista: bool = False  # lista: aceita so os valores das opcoes
@@ -86,6 +86,8 @@ class Formulario(QWidget):
             widget.currentTextChanged.connect(self._mudou)
         else:
             widget = QLineEdit()
+            if campo.tipo == "senha":
+                widget.setEchoMode(QLineEdit.EchoMode.Password)
             if campo.dica:
                 widget.setPlaceholderText(campo.dica)
             widget.textChanged.connect(self._mudou)

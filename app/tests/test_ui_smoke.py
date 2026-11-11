@@ -214,3 +214,90 @@ def test_os_compra_estoque_financeiro_relatorios_constroem(qapp, app_db):
     for pagina in (os_page, compra_page, estoque, financeiro):
         pagina.resize(1200, 760)
         assert not pagina.grab().isNull()
+
+
+def test_matriz_de_permissoes_regras_de_coerencia(qapp):
+    from app.ui.paginas.usuarios import MatrizPermissoes
+
+    m = MatrizPermissoes()
+    m.carregar({"clientes": {"ver"}})
+    assert m.valores()["clientes"] == {"ver"} and m.valores()["vendas"] == set()
+    m.checks[("vendas", "editar")].setChecked(True)
+    m._clique("vendas", "editar", True)  # editar exige ver
+    assert m.valores()["vendas"] == {"ver", "editar"}
+    m.checks[("vendas", "ver")].setChecked(False)
+    m._clique("vendas", "ver", False)  # sem ver, limpa o resto
+    assert m.valores()["vendas"] == set()
+    m.linha_todos["os"].setChecked(True)
+    m._linha("os", True)
+    assert m.valores()["os"] == {"ver", "criar", "editar", "excluir"} and m.linha_todos["os"].isChecked()
+    m.coluna_todos["ver"].setChecked(True)
+    m._coluna("ver", True)
+    assert all("ver" in v for v in m.valores().values())
+
+
+def test_usuarios_e_permissoes_na_pagina(qapp, app_db):
+    from app.controllers.auth_controller import AuthController
+    from app.ui.paginas.usuarios import PaginaPermissoes, PaginaUsuarios, situacao_usuario
+
+    admin = AuthController().autenticar("admin", "admin123")
+    pagina = PaginaUsuarios(admin)
+    pagina.resize(1200, 700)
+    assert pagina.tabela.total() == 1  # so o admin
+    pagina.novo()
+    f = pagina.formulario.widgets
+    f["nome"].setText("Carla")
+    f["login"].setText("carla")
+    f["email"].setText("carla@x.test")
+    f["senha"].setText("curta")  # invalida
+    f["perfil"].setCurrentIndex(0)
+    pagina.salvar()
+    assert pagina.erro.text() and pagina.tabela.total() == 1
+    f["senha"].setText("Senha1234")
+    pagina.salvar()
+    assert pagina.tabela.total() == 2 and not pagina.erro.text() and not f["login"].isEnabled()
+    assert situacao_usuario(next(u for u in pagina.usuarios.values() if u.login == "carla")) == "Ativo"
+    perm = PaginaPermissoes(admin)
+    assert perm._perfil and not perm.botao_salvar.isEnabled()  # admin: somente leitura
+    perm.novo_perfil  # noqa: B018 - dialogo modal nao e aberto nos testes
+    perm.controller.criar_perfil("Caixa")
+    perm._perfil = "Caixa"
+    perm.recarregar(avisar=False)
+    perm.matriz.checks[("clientes", "ver")].setChecked(True)
+    perm.matriz._clique("clientes", "ver", True)
+    assert perm.botao_salvar.isEnabled()
+    perm.salvar()
+    assert perm.controller.carregar(perm.perfis["Caixa"])["clientes"] == {"ver"} and not perm.botao_salvar.isEnabled()
+
+
+def test_auditoria_configuracoes_e_backup_constroem(qapp, app_db):
+    from datetime import date, datetime
+
+    from app.controllers.auth_controller import AuthController
+    from app.ui.paginas.seguranca import LinhaDoTempo, PaginaConfiguracoes, PaginaSeguranca, rotulo_do_dia, tom_da_acao
+
+    assert tom_da_acao("CANCELAR") == "perigo" and tom_da_acao("CRIAR") == "sucesso" and tom_da_acao("EDITAR_ITEM") == "info"
+    assert rotulo_do_dia(date(2026, 11, 11), date(2026, 11, 11)) == "Hoje" and rotulo_do_dia(date(2026, 11, 10), date(2026, 11, 11)) == "Ontem"
+
+    class Evento:
+        def __init__(self, i, acao, usuario_id=None):
+            self.id, self.acao, self.entidade, self.entidade_id = i, acao, "venda", i
+            self.detalhes, self.usuario_id, self.criado_em = f"V{i:06d}", usuario_id, datetime(2026, 11, 10, 9, i)
+
+    linha = LinhaDoTempo()
+    linha.definir([Evento(1, "CRIAR", 1), Evento(2, "CANCELAR")], {1: "Admin"})
+    assert "2 de 2" in linha.contador.text()
+    linha.busca.setText("admin")  # busca pelo nome do usuario
+    assert "1 de 1" in linha.contador.text()
+    linha.busca.setText("cancelar sistema")
+    assert "1 de 1" in linha.contador.text()
+
+    admin = AuthController().autenticar("admin", "admin123")
+    cfg = PaginaConfiguracoes(admin)
+    cfg.formulario.widgets["empresa.nome"].setText("Auto Peças Teste")
+    assert cfg.botao_salvar.isEnabled()
+    cfg.salvar_empresa()
+    assert cfg.valores["empresa.nome"] == "Auto Peças Teste" and not cfg.botao_salvar.isEnabled()
+    seg = PaginaSeguranca(admin)
+    seg.resize(1200, 700)
+    assert seg.kpi_eventos.valor.text() != "-" and not seg.grab().isNull()
