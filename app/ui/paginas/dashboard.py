@@ -237,7 +237,7 @@ class PaginaDashboard(Pagina):
     def _cartao_estoque(self, linhas) -> Card:
         card, corpo = self._cartao("Estoque abaixo do mínimo", "Dê dois cliques em um produto para abrir o Estoque.")
         tabela = TabelaDados(
-            [Coluna("Código", "texto", 90), Coluna("Descrição", "texto", 220), Coluna("Atual", "num", 70), Coluna("Mínimo", "num", 70)],
+            [Coluna("Código", "texto", 70), Coluna("Descrição", "texto", 140), Coluna("Atual", "num", 55), Coluna("Mínimo", "num", 62)],
             vazio_titulo="Tudo certo",
             vazio_texto="Nenhum produto abaixo do mínimo.",
             placeholder="Buscar produto…",
@@ -252,7 +252,7 @@ class PaginaDashboard(Pagina):
         card, corpo = self._cartao("Próximos vencimentos", "Dê dois cliques para abrir o Financeiro.")
         tons = {"Vencido": "perigo", "No prazo": "neutro"}
         tabela = TabelaDados(
-            [Coluna("Vencimento", "data", 95), Coluna("Tipo", "texto", 70), Coluna("Descrição", "texto", 170), Coluna("Valor", "num", 90), Coluna("Situação", "emblema", 90, tons)],
+            [Coluna("Vencimento", "data", 95), Coluna("Tipo", "texto", 85), Coluna("Descrição", "texto", 160), Coluna("Valor", "num", 90), Coluna("Situação", "emblema", 90, tons)],
             vazio_titulo="Sem vencimentos",
             vazio_texto="Nenhum lançamento em aberto para os próximos dias.",
             placeholder="Buscar lançamento…",
