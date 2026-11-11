@@ -266,7 +266,8 @@ class CaixaBusca(QLineEdit):
         self.setClearButtonEnabled(True)
         self._lupa = self.addAction(icones.icone("buscar", tema.t["mudo"], 16), QLineEdit.ActionPosition.LeadingPosition)
         ao_mudar_tema(self, lambda: self._lupa.setIcon(icones.icone("buscar", tema.t["mudo"], 16)))
-        self.setMinimumWidth(260)
+        self.setMinimumWidth(150)
+        self.setMaximumWidth(320)
 
 
 # ---------------------------------------------------------------------------------------- tabela

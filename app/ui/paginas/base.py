@@ -28,6 +28,17 @@ class Pagina(QWidget):
         if hasattr(janela, "abrir"):
             janela.abrir(chave)
 
+    def executar(self, acao, sucesso: str | None = None) -> bool:
+        """Roda `acao`; mostra qualquer erro de regra/permissao como aviso e confirma o sucesso."""
+        try:
+            acao()
+        except Exception as exc:  # noqa: BLE001 - a UI mostra qualquer erro de regra de negocio/permissao
+            self.avisar(str(exc), "perigo")
+            return False
+        if sucesso:
+            self.avisar(sucesso, "sucesso")
+        return True
+
     def avisar(self, texto: str, tom: str = "info") -> None:
         janela = self.window()
         if hasattr(janela, "avisos"):

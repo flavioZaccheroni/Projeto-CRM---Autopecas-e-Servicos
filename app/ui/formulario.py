@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
 
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QCheckBox, QComboBox, QGridLayout, QLineEdit, QWidget
+from PySide6.QtCore import QDate, Signal
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDateEdit, QGridLayout, QLineEdit, QWidget
 
 from app.ui.componentes import Seletor, rotulo
 
@@ -15,7 +16,7 @@ from app.ui.componentes import Seletor, rotulo
 class Campo:
     nome: str
     rotulo: str
-    tipo: str = "texto"  # texto | bool | lista | busca
+    tipo: str = "texto"  # texto | bool | lista | busca | data
     opcoes: list[str] = field(default_factory=list)  # tipo lista
     fonte: Callable[[], list] | None = None  # tipo busca: devolve [(id, nome)]
     somente_lista: bool = False  # lista: aceita so os valores das opcoes
@@ -69,6 +70,11 @@ class Formulario(QWidget):
             widget: QWidget = QCheckBox(campo.rotulo)
             widget.setChecked(True)
             widget.toggled.connect(self._mudou)
+        elif campo.tipo == "data":
+            widget = QDateEdit(QDate.currentDate())
+            widget.setCalendarPopup(True)
+            widget.setDisplayFormat("dd/MM/yyyy")
+            widget.dateChanged.connect(self._mudou)
         elif campo.tipo == "busca":
             widget = Seletor(campo.fonte, campo.dica or "Digite para buscar…")
             widget.currentTextChanged.connect(self._mudou)
@@ -97,6 +103,8 @@ class Formulario(QWidget):
             widget = self.widgets[campo.nome]
             if isinstance(widget, QCheckBox):
                 dados[campo.nome] = widget.isChecked()
+            elif isinstance(widget, QDateEdit):
+                dados[campo.nome] = widget.date().toString("yyyy-MM-dd")
             elif isinstance(widget, Seletor):
                 dados[campo.nome] = widget.id()
             elif isinstance(widget, QComboBox):
@@ -121,6 +129,9 @@ class Formulario(QWidget):
                     valor = ""
                 if isinstance(widget, QCheckBox):
                     widget.setChecked(bool(valor))
+                elif isinstance(widget, QDateEdit):
+                    texto = str(valor)[:10] if valor else date.today().isoformat()
+                    widget.setDate(QDate.fromString(texto, "yyyy-MM-dd"))
                 elif isinstance(widget, Seletor):
                     widget.recarregar()
                     widget.definir_id(valor)

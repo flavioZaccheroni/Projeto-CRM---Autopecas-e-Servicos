@@ -156,8 +156,9 @@ ESPECS: dict[str, EspecCadastro] = {
 class PainelEdicao(QFrame):
     """Painel lateral que desliza para dentro/fora (animacao da largura maxima)."""
 
-    def __init__(self) -> None:
+    def __init__(self, largura: int = LARGURA_PAINEL) -> None:
         super().__init__()
+        self._largura = largura
         self.setMaximumWidth(0)
         self.setMinimumWidth(0)
         self._aberto = False
@@ -179,7 +180,7 @@ class PainelEdicao(QFrame):
         self._aberto = abrir
         self._anim.stop()
         self._anim.setStartValue(self.maximumWidth())
-        self._anim.setEndValue(LARGURA_PAINEL if abrir else 0)
+        self._anim.setEndValue(self._largura if abrir else 0)
         self._anim.start()
 
 

@@ -136,3 +136,81 @@ def test_cadastro_cria_edita_e_valida(qapp, app_db):
     pagina._sujo = False
     pagina.cancelar()
     assert not pagina.painel._aberto
+
+
+def _preparar_dados(admin):
+    from app.controllers.cadastro_controller import ClienteController, FornecedorController, ProdutoController, VeiculoController
+
+    ClienteController().salvar({"nome": "Ana", "tipo_pessoa": "PF", "cpf_cnpj": "52998224725", "ativo": True})
+    FornecedorController().salvar({"razao_social": "Forn SA", "cnpj": "11222333000181", "ativo": True})
+    ProdutoController().salvar({"codigo": "P1", "descricao": "Filtro", "unidade": "UN", "preco_custo": "10", "preco_venda": "25", "estoque_minimo": "3", "ativo": True})
+    VeiculoController().salvar({"cliente_id": 1, "placa": "ABC1D23", "marca": "VW", "modelo": "Gol"})
+
+
+def test_venda_fluxo_na_pagina(qapp, app_db):
+    from app.controllers.auth_controller import AuthController
+    from app.ui.paginas.documentos import ESPECS_DOC, PaginaDocumento
+
+    admin = AuthController().autenticar("admin", "admin123")
+    _preparar_dados(admin)
+    pagina = PaginaDocumento(ESPECS_DOC["Vendas"], admin)
+    pagina.resize(1200, 760)
+    assert pagina.tabela.total() == 0
+    venda = pagina.controller.criar_venda({"cliente_id": 1}, usuario_id=admin.id)
+    pagina.recarregar(avisar=False)
+    pagina.tabela.selecionar(str(venda.id))
+    pagina._mostrar(str(venda.id))
+    assert pagina.painel.aberto and not pagina.botoes["finalizar"].isHidden()
+    # adiciona item pelo formulario inline
+    pagina.produto.definir_id(1)
+    pagina._produto_escolhido(pagina.produto.opcao())
+    assert pagina.valor.text()  # preco de venda sugerido
+    pagina.qtd.setText("2")
+    pagina.adicionar_item()
+    assert pagina.itens.rowCount() == 1 and "50,00" in pagina.total.text()
+    # edicao inline do item atualiza o total
+    pagina._editar_item(pagina.itens._ids[0], "4", "25")
+    assert "100,00" in pagina.total.text()
+    # quantidade invalida: erro vira aviso e a tabela volta ao valor gravado
+    pagina._editar_item(pagina.itens._ids[0], "abc", "25")
+    assert "100,00" in pagina.total.text()
+    # aprovar muda a etapa e as acoes disponiveis
+    pagina.acionar(next(a for a in ESPECS_DOC["Vendas"].acoes if a.chave == "aprovar"))
+    assert pagina.etapas._indice == 1 and not pagina.botoes["aprovar"].isEnabled() and pagina.botoes["finalizar"].isEnabled()
+    assert not pagina.grab().isNull()
+
+
+def test_os_compra_estoque_financeiro_relatorios_constroem(qapp, app_db):
+    from app.controllers.auth_controller import AuthController
+    from app.ui.paginas.documentos import ESPECS_DOC, PaginaDocumento
+    from app.ui.paginas.estoque import PaginaEstoque
+    from app.ui.paginas.financeiro import PaginaFinanceiro, situacao
+    from app.ui.paginas.relatorios import PaginaRelatorios
+
+    admin = AuthController().autenticar("admin", "admin123")
+    _preparar_dados(admin)
+    os_page = PaginaDocumento(ESPECS_DOC["Ordem de Servico"], admin)
+    ordem = os_page.controller.abrir_os({"cliente_id": 1, "veiculo_id": 1, "defeito_relatado": "barulho", "status": "AGUARDANDO_PECA"}, usuario_id=admin.id)
+    os_page.recarregar(avisar=False)
+    os_page.tabela.selecionar(str(ordem.id))
+    os_page._mostrar(str(ordem.id))
+    assert os_page.etapas._rotulo_atual == "Aguardando peca"  # status intermediario destacado
+    compra_page = PaginaDocumento(ESPECS_DOC["Compras"], admin)
+    pedido = compra_page.controller.criar_compra({"fornecedor_id": 1}, usuario_id=admin.id)
+    compra_page.recarregar(avisar=False)
+    compra_page._mostrar(str(pedido.id))
+    estoque = PaginaEstoque(admin)
+    estoque.controller.movimentar({"produto_id": "1", "tipo": "ENTRADA", "quantidade": "2", "origem": "MANUAL", "localizacao": ""}, usuario_id=admin.id)
+    estoque.recarregar(avisar=False)
+    assert estoque.tab_saldo.total() == 1 and estoque.kpi_baixo.valor.text() == "1"  # saldo 2 <= minimo 3
+    financeiro = PaginaFinanceiro(admin)
+    financeiro.controller.criar_lancamento({"tipo": "PAGAR", "descricao": "Luz", "valor": "80", "data_vencimento": "2020-01-01", "origem": "MANUAL", "origem_id": 0})
+    financeiro.recarregar(avisar=False)
+    lanc = next(iter(financeiro.lancamentos.values()))
+    assert situacao(lanc) == "Vencido"
+    financeiro.tab_lanc.selecionar(str(lanc.id))
+    assert financeiro.botao_baixar.isEnabled() and not financeiro.botao_estornar.isEnabled()
+    PaginaRelatorios()
+    for pagina in (os_page, compra_page, estoque, financeiro):
+        pagina.resize(1200, 760)
+        assert not pagina.grab().isNull()
