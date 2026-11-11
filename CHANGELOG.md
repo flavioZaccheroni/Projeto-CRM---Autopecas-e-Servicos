@@ -2,6 +2,15 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [2.0.1]
+
+### Corrigido
+- O executável do v2.0.0 não abria: faltava empacotar `app.database.migrations`, usado pela migração do Alembic.
+  O build agora é validado no CI, que abre o `.exe` num autoteste (`--selftest`) antes de gerar o pacote.
+
+### Adicionado
+- Workflow `Build do executavel` (GitHub Actions) com autoteste do `.exe`; spike de PySide6 para o redesign.
+
 ## [2.0.0]
 
 ### Adicionado
