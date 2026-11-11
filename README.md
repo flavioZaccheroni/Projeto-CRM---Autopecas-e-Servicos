@@ -2,9 +2,22 @@
 
 Sistema desktop inicial para autopecas, oficinas e servicos automotivos.
 
-## Fase atual
+## Versao atual
 
-Fase 10 - Deploy, homologacao e treinamento:
+Fases 1 a 10 + Sprints 1 e 2 (seguranca e fluxo de negocio). Veja `docs/SPRINTS_1_E_2.md`.
+
+Novidades:
+
+- Perfis e permissoes aplicados de verdade (ver/criar/editar/excluir por modulo), com perfis padrao
+  Administrador, Vendedor, Estoquista e Financeiro.
+- Telas de Usuarios, Perfis/Permissoes e Configuracoes.
+- Login seguro: troca de senha obrigatoria no primeiro acesso, politica de senha e bloqueio por tentativas.
+- Backup consistente, restauracao validada com copia de seguranca previa e auditoria de todas as escritas.
+- Numeracao automatica, parcelamento, contas a pagar na compra, cancelamento com estorno,
+  orcamento -> aprovacao -> venda, edicao de itens e impressao de OS em PDF.
+- Validacao de CPF/CNPJ, placa, UF e telefone; migracao automatica de bancos antigos.
+
+## Escopo original (Fase 10)
 
 - Estrutura de pastas
 - Banco SQLite com SQLAlchemy
@@ -25,14 +38,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Usuario inicial:
+Primeiro acesso:
 
 - Login: `admin`
-- Senha: `admin123`
+- Senha temporaria: `admin123` — o sistema **obriga a troca** no primeiro login
+  (minimo 8 caracteres, com letras e numeros).
 
 ## Testes
 
 ```powershell
+pip install -r requirements-dev.txt
 pytest
 ```
 

@@ -30,6 +30,11 @@ class OrdemServicoController:
         with SessionLocal() as session:
             return _service(session).listar()
 
+    @requer_permissao("os", "ver")
+    def listar_itens(self, os_id: int):
+        with SessionLocal() as session:
+            return _service(session).listar_itens(os_id)
+
     @requer_permissao("os", "criar")
     def abrir_os(self, dados: dict, usuario_id: int | None = None):
         with SessionLocal() as session:

@@ -2,6 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 
 from app.config.settings import APP_NAME
+from app.controllers.auth_controller import AuthController
+from app.utils.sessao import MENU_PARA_MODULO, Sessao
+from app.views.admin_views import ConfiguracoesFrame, PermissoesFrame, UsuariosFrame
 from app.views.compra_view import CompraFrame
 from app.views.crud_view import CrudFrame
 from app.views.estoque_view import EstoqueFrame
@@ -52,6 +55,9 @@ class MainWindow:
         ]
         self.menu_buttons: dict[str, tk.Button] = {}
         for group_name, items in menu_groups:
+            items = [m for m in items if self._pode_ver(m)]
+            if not items:
+                continue
             tk.Label(
                 sidebar,
                 text=group_name.upper(),
@@ -79,6 +85,22 @@ class MainWindow:
                 button.pack(fill="x", padx=12, pady=2)
                 self.menu_buttons[modulo] = button
 
+        tk.Button(
+            sidebar,
+            text=f"Sair ({self.usuario.login})",
+            anchor="w",
+            relief="flat",
+            bd=0,
+            padx=14,
+            pady=9,
+            fg=COLORS["sidebar_muted"],
+            bg=COLORS["sidebar"],
+            activeforeground="#ffffff",
+            activebackground=COLORS["sidebar_hover"],
+            font=("Segoe UI", 10),
+            command=self.sair,
+        ).pack(side="bottom", fill="x", padx=12, pady=12)
+
         self.content = ttk.Frame(self.root, style="App.TFrame")
         self.content.pack(side="left", fill="both", expand=True)
         self.abrir_dashboard()
@@ -99,9 +121,9 @@ class MainWindow:
         cards.pack(fill="x", pady=(0, 18))
         for index, (title, value, detail) in enumerate(
             [
-                ("Fases entregues", "1 a 9", "Base, operacao, financeiro, relatorios e seguranca"),
-                ("Fluxos ativos", "7", "Operacao, financeiro, relatorios, auditoria e backup"),
-                ("Proxima etapa", "Fase 10", "Deploy"),
+                ("Usuario", self.usuario.login, self.usuario.nome),
+                ("Perfil", self.usuario.perfil.nome, "Define os modulos e acoes liberados no menu"),
+                ("Modulos liberados", str(sum(1 for m in MENU_PARA_MODULO if m != "Dashboard" and self._pode_ver(m))), "Itens visiveis no menu lateral"),
             ]
         ):
             card = ttk.LabelFrame(cards, text=title, padding=16, style="Section.TLabelframe")
@@ -124,6 +146,18 @@ class MainWindow:
         self._ativar_menu(nome)
         if nome == "Dashboard":
             self.abrir_dashboard()
+            return
+        if not self._pode_ver(nome):
+            ttk.Label(self.content, text="Acesso negado a este modulo.", padding=24).pack(anchor="w")
+            return
+        if nome == "Usuarios":
+            UsuariosFrame(self.content, self.usuario).pack(fill="both", expand=True)
+            return
+        if nome == "Permissoes":
+            PermissoesFrame(self.content, self.usuario).pack(fill="both", expand=True)
+            return
+        if nome == "Configuracoes":
+            ConfiguracoesFrame(self.content, self.usuario).pack(fill="both", expand=True)
             return
         if nome in CADASTRO_MODULES:
             config = CADASTRO_MODULES[nome]
@@ -160,6 +194,18 @@ class MainWindow:
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text=nome, font=("Segoe UI", 16, "bold")).pack(anchor="w")
         ttk.Label(frame, text="Modulo previsto para fase futura ou complemento da Fase 1.").pack(anchor="w", pady=(8, 0))
+
+    @staticmethod
+    def _pode_ver(nome_menu: str) -> bool:
+        modulo = MENU_PARA_MODULO.get(nome_menu)
+        return modulo is None or Sessao.pode(modulo, "ver")
+
+    def sair(self) -> None:
+        AuthController().encerrar_sessao()
+        self.root.destroy()
+        from app.views.login_view import LoginView  # import tardio: login_view importa esta janela
+
+        LoginView().run()
 
     def _limpar_content(self) -> None:
         for child in self.content.winfo_children():

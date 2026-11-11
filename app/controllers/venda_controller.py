@@ -30,6 +30,11 @@ class VendaController:
         with SessionLocal() as session:
             return _service(session).listar()
 
+    @requer_permissao("vendas", "ver")
+    def listar_itens(self, venda_id: int):
+        with SessionLocal() as session:
+            return _service(session).listar_itens(venda_id)
+
     @requer_permissao("vendas", "criar")
     def criar_venda(self, dados: dict, usuario_id: int | None = None):
         with SessionLocal() as session:

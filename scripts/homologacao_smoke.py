@@ -11,10 +11,12 @@ if str(ROOT_DIR) not in sys.path:
 from app.controllers.relatorio_controller import RelatorioController
 from app.controllers.seguranca_controller import SegurancaController
 from app.database.init_db import initialize_database
+from app.utils.sessao import Sessao
 
 
 def main() -> int:
     initialize_database()
+    Sessao.iniciar_sistema()  # script sem usuario interativo
     relatorio = RelatorioController()
     pdf = relatorio.gerar("financeiro", "pdf")
     xlsx = relatorio.gerar("estoque", "xlsx")

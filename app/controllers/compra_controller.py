@@ -27,6 +27,11 @@ class CompraController:
         with SessionLocal() as session:
             return _service(session).listar()
 
+    @requer_permissao("compras", "ver")
+    def listar_itens(self, compra_id: int):
+        with SessionLocal() as session:
+            return _service(session).listar_itens(compra_id)
+
     @requer_permissao("compras", "criar")
     def criar_compra(self, dados: dict, usuario_id: int | None = None):
         with SessionLocal() as session:

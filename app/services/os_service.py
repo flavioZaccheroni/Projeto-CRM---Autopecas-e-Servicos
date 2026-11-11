@@ -101,6 +101,9 @@ class OrdemServicoService:
         self.item_repository.excluir(item)
         recalcular_total(self._session, ordem)
 
+    def listar_itens(self, documento_id: int) -> list:
+        return list(self._obter(documento_id).itens)
+
     # -- ciclo de vida ----------------------------------------------------------------------
     def finalizar_os(
         self,

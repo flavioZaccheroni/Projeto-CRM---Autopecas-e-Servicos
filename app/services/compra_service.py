@@ -84,6 +84,9 @@ class CompraService:
         self.item_repository.excluir(item)
         recalcular_total(self._session, compra)
 
+    def listar_itens(self, documento_id: int) -> list:
+        return list(self._obter(documento_id).itens)
+
     # -- ciclo de vida ----------------------------------------------------------------------
     def receber_compra(
         self,

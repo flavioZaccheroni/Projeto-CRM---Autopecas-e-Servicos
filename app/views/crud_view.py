@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from app.utils.sessao import Sessao
 from app.views.theme import format_value
 
 
@@ -35,7 +36,11 @@ class CrudFrame(ttk.Frame):
         actions = ttk.Frame(self, style="Surface.TFrame")
         actions.pack(fill="x", pady=12)
         ttk.Button(actions, text="Novo", command=self.limpar).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Salvar", command=self.salvar, style="Primary.TButton").pack(side="left", padx=(0, 8))
+        modulo = getattr(controller, "modulo", "")
+        self.botao_salvar = ttk.Button(actions, text="Salvar", command=self.salvar, style="Primary.TButton")
+        self.botao_salvar.pack(side="left", padx=(0, 8))
+        if modulo and not (Sessao.pode(modulo, "criar") or Sessao.pode(modulo, "editar")):
+            self.botao_salvar.state(["disabled"])
         ttk.Button(actions, text="Atualizar", command=self.carregar).pack(side="left")
 
         table_frame = ttk.LabelFrame(self, text="Registros", padding=10, style="Section.TLabelframe")
