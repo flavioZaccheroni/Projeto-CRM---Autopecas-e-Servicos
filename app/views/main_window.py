@@ -2,8 +2,12 @@ import tkinter as tk
 from tkinter import ttk
 
 from app.config.settings import APP_NAME
+from app.controllers.auth_controller import AuthController
+from app.utils.sessao import MENU_PARA_MODULO, Sessao
+from app.views.admin_views import ConfiguracoesFrame, PermissoesFrame, UsuariosFrame
 from app.views.compra_view import CompraFrame
 from app.views.crud_view import CrudFrame
+from app.views.dashboard_view import DashboardFrame
 from app.views.estoque_view import EstoqueFrame
 from app.views.financeiro_view import FinanceiroFrame
 from app.views.module_configs import CADASTRO_MODULES
@@ -12,6 +16,7 @@ from app.views.relatorio_view import RelatorioFrame
 from app.views.seguranca_view import SegurancaFrame
 from app.views.theme import COLORS, configure_style
 from app.views.venda_view import VendaFrame
+from app.views.widgets import TabelaFiltravel
 
 
 class MainWindow:
@@ -20,7 +25,7 @@ class MainWindow:
         self.active_button: tk.Button | None = None
         self.root = tk.Tk()
         self.root.title(APP_NAME)
-        self.root.geometry("1280x760")
+        self.root.geometry("1320x800")
         self.root.minsize(1100, 680)
         configure_style(self.root)
 
@@ -52,6 +57,9 @@ class MainWindow:
         ]
         self.menu_buttons: dict[str, tk.Button] = {}
         for group_name, items in menu_groups:
+            items = [m for m in items if self._pode_ver(m)]
+            if not items:
+                continue
             tk.Label(
                 sidebar,
                 text=group_name.upper(),
@@ -79,51 +87,57 @@ class MainWindow:
                 button.pack(fill="x", padx=12, pady=2)
                 self.menu_buttons[modulo] = button
 
+        tk.Button(
+            sidebar,
+            text=f"Sair ({self.usuario.login})",
+            anchor="w",
+            relief="flat",
+            bd=0,
+            padx=14,
+            pady=9,
+            fg=COLORS["sidebar_muted"],
+            bg=COLORS["sidebar"],
+            activeforeground="#ffffff",
+            activebackground=COLORS["sidebar_hover"],
+            font=("Segoe UI", 10),
+            command=self.sair,
+        ).pack(side="bottom", fill="x", padx=12, pady=12)
+
         self.content = ttk.Frame(self.root, style="App.TFrame")
         self.content.pack(side="left", fill="both", expand=True)
+        self.modulo_atual = "Dashboard"
+        self.root.bind("<F5>", lambda _e: self.recarregar())
+        self.root.bind("<Control-f>", lambda _e: TabelaFiltravel.focar_busca())
         self.abrir_dashboard()
 
     def abrir_dashboard(self) -> None:
         self._limpar_content()
         self._ativar_menu("Dashboard")
-        frame = ttk.Frame(self.content, padding=26, style="Surface.TFrame")
-        frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="ERP CRM Autopecas & Servicos", style="Header.TLabel").pack(anchor="w")
-        ttk.Label(
-            frame,
-            text=f"Usuario logado: {self.usuario.nome} | Perfil: {self.usuario.perfil.nome}",
-            style="Subtle.TLabel",
-        ).pack(anchor="w", pady=(6, 24))
+        self.modulo_atual = "Dashboard"
+        DashboardFrame(self.content, self.usuario).pack(fill="both", expand=True)
 
-        cards = ttk.Frame(frame, style="Surface.TFrame")
-        cards.pack(fill="x", pady=(0, 18))
-        for index, (title, value, detail) in enumerate(
-            [
-                ("Fases entregues", "1 a 9", "Base, operacao, financeiro, relatorios e seguranca"),
-                ("Fluxos ativos", "7", "Operacao, financeiro, relatorios, auditoria e backup"),
-                ("Proxima etapa", "Fase 10", "Deploy"),
-            ]
-        ):
-            card = ttk.LabelFrame(cards, text=title, padding=16, style="Section.TLabelframe")
-            card.grid(row=0, column=index, sticky="nsew", padx=(0, 12))
-            ttk.Label(card, text=value, font=("Segoe UI", 20, "bold")).pack(anchor="w")
-            ttk.Label(card, text=detail, style="Subtle.TLabel", wraplength=260).pack(anchor="w", pady=(6, 0))
-            cards.columnconfigure(index, weight=1)
-
-        workflow = ttk.LabelFrame(frame, text="Fluxo operacional atual", padding=16, style="Section.TLabelframe")
-        workflow.pack(fill="x")
-        ttk.Label(
-            workflow,
-            text="Cadastre clientes e produtos, alimente o estoque por compras ou ajuste, finalize vendas para baixar saldo e gerar contas a receber.",
-            style="Subtle.TLabel",
-            wraplength=820,
-        ).pack(anchor="w")
+    def recarregar(self) -> None:
+        """F5: reabre o modulo atual com dados atualizados."""
+        self.abrir_modulo(self.modulo_atual)
 
     def abrir_modulo(self, nome: str) -> None:
         self._limpar_content()
         self._ativar_menu(nome)
+        self.modulo_atual = nome
         if nome == "Dashboard":
             self.abrir_dashboard()
+            return
+        if not self._pode_ver(nome):
+            ttk.Label(self.content, text="Acesso negado a este modulo.", padding=24).pack(anchor="w")
+            return
+        if nome == "Usuarios":
+            UsuariosFrame(self.content, self.usuario).pack(fill="both", expand=True)
+            return
+        if nome == "Permissoes":
+            PermissoesFrame(self.content, self.usuario).pack(fill="both", expand=True)
+            return
+        if nome == "Configuracoes":
+            ConfiguracoesFrame(self.content, self.usuario).pack(fill="both", expand=True)
             return
         if nome in CADASTRO_MODULES:
             config = CADASTRO_MODULES[nome]
@@ -160,6 +174,18 @@ class MainWindow:
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text=nome, font=("Segoe UI", 16, "bold")).pack(anchor="w")
         ttk.Label(frame, text="Modulo previsto para fase futura ou complemento da Fase 1.").pack(anchor="w", pady=(8, 0))
+
+    @staticmethod
+    def _pode_ver(nome_menu: str) -> bool:
+        modulo = MENU_PARA_MODULO.get(nome_menu)
+        return modulo is None or Sessao.pode(modulo, "ver")
+
+    def sair(self) -> None:
+        AuthController().encerrar_sessao()
+        self.root.destroy()
+        from app.views.login_view import LoginView  # import tardio: login_view importa esta janela
+
+        LoginView().run()
 
     def _limpar_content(self) -> None:
         for child in self.content.winfo_children():

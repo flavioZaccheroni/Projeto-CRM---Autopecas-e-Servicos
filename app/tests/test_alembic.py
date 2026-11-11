@@ -1,0 +1,34 @@
+from sqlalchemy import create_engine, inspect, text
+
+from app.database.alembic_runner import upgrade_to_head, versao_atual
+from app.database.database import importar_modelos
+
+
+def test_banco_novo_chega_ao_head_com_todas_as_tabelas(tmp_path):
+    importar_modelos()
+    engine = create_engine(f"sqlite:///{tmp_path / 'novo.db'}")
+    upgrade_to_head(engine)
+    tabelas = set(inspect(engine).get_table_names())
+    assert {"usuarios", "vendas", "ordens_servico", "compras", "auditoria", "alembic_version"} <= tabelas
+    assert versao_atual(engine) == "0001"
+
+
+def test_banco_anterior_ao_alembic_e_atualizado_sem_perder_dados(tmp_path):
+    importar_modelos()
+    engine = create_engine(f"sqlite:///{tmp_path / 'antigo.db'}")
+    with engine.begin() as conn:
+        conn.execute(text("CREATE TABLE usuarios (id INTEGER PRIMARY KEY, nome TEXT, login TEXT)"))
+        conn.execute(text("INSERT INTO usuarios (nome, login) VALUES ('Admin', 'admin')"))
+    upgrade_to_head(engine)
+    colunas = {c["name"] for c in inspect(engine).get_columns("usuarios")}
+    assert {"precisa_trocar_senha", "tentativas_falhas", "bloqueado_ate"} <= colunas
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT login FROM usuarios")).scalar() == "admin"
+
+
+def test_upgrade_e_idempotente(tmp_path):
+    importar_modelos()
+    engine = create_engine(f"sqlite:///{tmp_path / 'x.db'}")
+    upgrade_to_head(engine)
+    upgrade_to_head(engine)
+    assert versao_atual(engine) == "0001"

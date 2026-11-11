@@ -7,7 +7,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DIST_DIR = ROOT_DIR / "dist"
 RELEASES_DIR = ROOT_DIR / "releases"
@@ -32,9 +31,12 @@ def main() -> int:
     if not args.skip_exe:
         exe_path = _try_build_exe()
         if exe_path and exe_path.exists():
-            bin_dir = release_dir / "bin"
-            bin_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(exe_path, bin_dir / exe_path.name)
+            # onedir: o .exe precisa da pasta _internal ao lado, entao copiamos a pasta inteira
+            shutil.copytree(exe_path.parent, release_dir / "bin" / exe_path.parent.name)
+            portatil = RELEASES_DIR / f"ERP_Autopecas_{args.version}_windows.zip"
+            RELEASES_DIR.mkdir(parents=True, exist_ok=True)
+            shutil.make_archive(str(portatil.with_suffix("")), "zip", exe_path.parent.parent, exe_path.parent.name)
+            print(f"Pacote do executavel: {portatil}")
 
     RELEASES_DIR.mkdir(parents=True, exist_ok=True)
     if archive_path.exists():
@@ -98,17 +100,7 @@ def _try_build_exe() -> Path | None:
     if not _module_available("PyInstaller"):
         print("PyInstaller nao instalado; pulando geracao de .exe.")
         return None
-    command = [
-        sys.executable,
-        "-m",
-        "PyInstaller",
-        "--clean",
-        "--noconfirm",
-        "--windowed",
-        "--name",
-        "ERP_Autopecas",
-        "main.py",
-    ]
+    command = [sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", str(ROOT_DIR / "ERP_Autopecas.spec")]
     result = subprocess.run(command, cwd=ROOT_DIR, check=False)
     if result.returncode != 0:
         print("PyInstaller falhou; mantendo release portatil.")

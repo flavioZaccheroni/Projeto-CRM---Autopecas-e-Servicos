@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+extend-exclude = ["build", "dist", "tools", ".venv", "app/database/alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+per-file-ignores = {"scripts/*" = ["E402"], "main.py" = ["E402"]}
+ignore = ["E501", "E741", "UP046", "B008", "UP037"]
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]

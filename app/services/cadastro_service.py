@@ -14,7 +14,15 @@ from app.repositories.cadastro_repository import (
     ProdutoRepository,
     VeiculoRepository,
 )
-from app.utils.validators import validar_email_opcional, validar_obrigatorio
+from app.utils.validators import (
+    somente_digitos,
+    validar_cpf_cnpj,
+    validar_email_opcional,
+    validar_obrigatorio,
+    validar_placa,
+    validar_telefone_opcional,
+    validar_uf_opcional,
+)
 
 
 class ClienteService:
@@ -29,8 +37,12 @@ class ClienteService:
         validar_obrigatorio(dados.get("tipo_pessoa"), "Tipo pessoa")
         validar_obrigatorio(dados.get("cpf_cnpj"), "CPF/CNPJ")
         validar_email_opcional(dados.get("email"))
+        validar_cpf_cnpj(dados["cpf_cnpj"], dados.get("tipo_pessoa"))
+        validar_telefone_opcional(dados.get("telefone"))
+        validar_uf_opcional(dados.get("uf"))
+        dados = {**dados, "cpf_cnpj": somente_digitos(dados["cpf_cnpj"])}
         item_id = _id(dados)
-        existente = self.repository.buscar_por_cpf_cnpj(dados["cpf_cnpj"].strip())
+        existente = self.repository.buscar_por_cpf_cnpj(dados["cpf_cnpj"])
         if existente and existente.id != item_id:
             raise ValueError("CPF/CNPJ ja cadastrado.")
         cliente = self.repository.buscar_por_id(item_id) if item_id else Cliente()
@@ -48,8 +60,10 @@ class VeiculoService:
     def salvar(self, dados: dict) -> Veiculo:
         validar_obrigatorio(dados.get("cliente_id"), "Cliente")
         validar_obrigatorio(dados.get("placa"), "Placa")
+        validar_placa(dados["placa"])
+        dados = {**dados, "placa": dados["placa"].strip().upper().replace("-", "")}
         item_id = _id(dados)
-        existente = self.repository.buscar_por_placa(dados["placa"].strip().upper())
+        existente = self.repository.buscar_por_placa(dados["placa"])
         if existente and existente.id != item_id:
             raise ValueError("Placa ja cadastrada.")
         veiculo = self.repository.buscar_por_id(item_id) if item_id else Veiculo()
@@ -69,8 +83,11 @@ class FornecedorService:
         validar_obrigatorio(dados.get("razao_social"), "Razao social")
         validar_obrigatorio(dados.get("cnpj"), "CNPJ")
         validar_email_opcional(dados.get("email"))
+        validar_cpf_cnpj(dados["cnpj"], "PJ")
+        validar_telefone_opcional(dados.get("telefone"))
+        dados = {**dados, "cnpj": somente_digitos(dados["cnpj"])}
         item_id = _id(dados)
-        existente = self.repository.buscar_por_cnpj(dados["cnpj"].strip())
+        existente = self.repository.buscar_por_cnpj(dados["cnpj"])
         if existente and existente.id != item_id:
             raise ValueError("CNPJ ja cadastrado.")
         fornecedor = self.repository.buscar_por_id(item_id) if item_id else Fornecedor()

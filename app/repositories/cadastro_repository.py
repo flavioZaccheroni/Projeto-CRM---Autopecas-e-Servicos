@@ -19,6 +19,8 @@ class ClienteRepository(BaseRepository[Cliente]):
 
 
 class VeiculoRepository(BaseRepository[Veiculo]):
+    eager_load = ('cliente',)
+
     def __init__(self, session: Session) -> None:
         super().__init__(session, Veiculo)
 
@@ -51,6 +53,8 @@ class MarcaProdutoRepository(BaseRepository[MarcaProduto]):
 
 
 class ProdutoRepository(BaseRepository[Produto]):
+    eager_load = ('categoria', 'marca')
+
     def __init__(self, session: Session) -> None:
         super().__init__(session, Produto)
 

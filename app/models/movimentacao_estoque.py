@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
+from app.utils.datas import agora
 
 
 class MovimentacaoEstoque(Base):
@@ -18,7 +19,7 @@ class MovimentacaoEstoque(Base):
     saldo_anterior: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
     saldo_posterior: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"))
-    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, nullable=False)
 
     produto = relationship("Produto", back_populates="movimentacoes")
     usuario = relationship("Usuario")

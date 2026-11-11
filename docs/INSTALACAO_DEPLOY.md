@@ -25,7 +25,7 @@ O executavel em `bin/` e opcional. Se o ambiente Python usado para empacotar est
 ## Login inicial
 
 - Usuario: `admin`
-- Senha: `admin123`
+- Senha temporaria: `admin123` (a troca e obrigatoria no primeiro acesso)
 
 ## Estrutura runtime
 
@@ -35,6 +35,9 @@ O executavel em `bin/` e opcional. Se o ambiente Python usado para empacotar est
 - `exports/relatorios/`: relatorios PDF e Excel.
 
 ## Atualizacao em cliente
+
+> Bancos de versoes anteriores sao migrados automaticamente na primeira abertura (colunas novas sao
+> adicionadas sem perda de dados). Mesmo assim, faca o backup antes de atualizar.
 
 1. Abrir o sistema antigo e criar backup manual.
 2. Fechar o sistema.

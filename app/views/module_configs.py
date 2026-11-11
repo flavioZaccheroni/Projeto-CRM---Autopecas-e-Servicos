@@ -6,20 +6,20 @@ from app.controllers.cadastro_controller import (
     ProdutoController,
     VeiculoController,
 )
-
+from app.utils.validators import UFS
 
 CADASTRO_MODULES = {
     "Clientes": {
         "controller": ClienteController,
         "fields": [
             {"name": "nome", "label": "Nome"},
-            {"name": "tipo_pessoa", "label": "Tipo pessoa"},
+            {"name": "tipo_pessoa", "label": "Tipo pessoa", "choices": ["PF", "PJ"], "readonly": True},
             {"name": "cpf_cnpj", "label": "CPF/CNPJ"},
             {"name": "telefone", "label": "Telefone"},
             {"name": "email", "label": "E-mail"},
             {"name": "endereco", "label": "Endereco"},
             {"name": "cidade", "label": "Cidade"},
-            {"name": "uf", "label": "UF"},
+            {"name": "uf", "label": "UF", "choices": sorted(UFS)},
             {"name": "ativo", "label": "Ativo", "type": "bool"},
         ],
         "columns": ["id", "nome", "tipo_pessoa", "cpf_cnpj", "telefone", "ativo"],
@@ -27,7 +27,7 @@ CADASTRO_MODULES = {
     "Veiculos": {
         "controller": VeiculoController,
         "fields": [
-            {"name": "cliente_id", "label": "Cliente ID"},
+            {"name": "cliente_id", "label": "Cliente", "lookup": "clientes"},
             {"name": "placa", "label": "Placa"},
             {"name": "marca", "label": "Marca"},
             {"name": "modelo", "label": "Modelo"},
@@ -35,7 +35,7 @@ CADASTRO_MODULES = {
             {"name": "km_atual", "label": "KM atual"},
             {"name": "observacoes", "label": "Observacoes"},
         ],
-        "columns": ["id", "cliente_id", "placa", "marca", "modelo", "ano", "km_atual"],
+        "columns": ["id", "cliente.nome", "placa", "marca", "modelo", "ano", "km_atual"],
     },
     "Fornecedores": {
         "controller": FornecedorController,
@@ -71,15 +71,15 @@ CADASTRO_MODULES = {
         "fields": [
             {"name": "codigo", "label": "Codigo"},
             {"name": "descricao", "label": "Descricao"},
-            {"name": "categoria_id", "label": "Categoria ID"},
-            {"name": "marca_id", "label": "Marca ID"},
+            {"name": "categoria_id", "label": "Categoria", "lookup": "categorias"},
+            {"name": "marca_id", "label": "Marca", "lookup": "marcas"},
             {"name": "ncm", "label": "NCM"},
-            {"name": "unidade", "label": "Unidade"},
+            {"name": "unidade", "label": "Unidade", "choices": ["UN", "PC", "CX", "KG", "L", "M", "JG"]},
             {"name": "preco_custo", "label": "Preco custo"},
             {"name": "preco_venda", "label": "Preco venda"},
             {"name": "estoque_minimo", "label": "Estoque minimo"},
             {"name": "ativo", "label": "Ativo", "type": "bool"},
         ],
-        "columns": ["id", "codigo", "descricao", "categoria_id", "marca_id", "preco_venda", "estoque_minimo"],
+        "columns": ["id", "codigo", "descricao", "categoria.nome", "marca.nome", "preco_venda", "estoque_minimo"],
     },
 }

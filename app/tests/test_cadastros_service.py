@@ -10,7 +10,7 @@ def test_cliente_nao_permite_cpf_cnpj_duplicado(session):
         {
             "nome": "Cliente A",
             "tipo_pessoa": "PF",
-            "cpf_cnpj": "123",
+            "cpf_cnpj": "529.982.247-25",
             "telefone": "",
             "email": "",
             "ativo": True,
@@ -22,7 +22,7 @@ def test_cliente_nao_permite_cpf_cnpj_duplicado(session):
             {
                 "nome": "Cliente B",
                 "tipo_pessoa": "PF",
-                "cpf_cnpj": "123",
+                "cpf_cnpj": "529.982.247-25",
                 "telefone": "",
                 "email": "",
                 "ativo": True,

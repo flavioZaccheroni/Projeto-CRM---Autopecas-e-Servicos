@@ -1,21 +1,31 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from app.views.theme import format_value
+from app.controllers.lookup_controller import LookupController
+from app.utils.sessao import Sessao
+from app.views.widgets import IdVar, Seletor, TabelaFiltravel, valor_coluna
 
 
 class CrudFrame(ttk.Frame):
+    """Tela generica de cadastro: formulario + tabela com busca.
+
+    Cada campo de `fields` pode ter: `type: bool`, `lookup: <nome do seletor>` (ID com busca),
+    `choices: [...]` (lista) e `readonly: True` (so aceita os valores da lista).
+    """
+
     def __init__(self, master, title: str, controller, fields: list[dict], columns: list[str]) -> None:
         super().__init__(master, padding=22, style="Surface.TFrame")
         self.controller = controller
         self.fields = fields
         self.columns = columns
         self.inputs: dict[str, tk.Variable] = {}
+        self.seletores: dict[str, Seletor] = {}
+        lookups = LookupController()
 
         header = ttk.Frame(self, style="Surface.TFrame")
         header.pack(fill="x", pady=(0, 14))
         ttk.Label(header, text=title, style="Header.TLabel").pack(anchor="w")
-        ttk.Label(header, text="Cadastre, edite e consulte registros deste modulo.", style="Subtle.TLabel").pack(anchor="w", pady=(4, 0))
+        ttk.Label(header, text="Cadastre, edite e consulte registros deste modulo. Ctrl+F busca na tabela.", style="Subtle.TLabel").pack(anchor="w", pady=(4, 0))
 
         form = ttk.LabelFrame(self, text="Dados do registro", padding=14, style="Section.TLabelframe")
         form.pack(fill="x")
@@ -23,58 +33,64 @@ class CrudFrame(ttk.Frame):
             row = index // 3
             col = (index % 3) * 2
             ttk.Label(form, text=field["label"]).grid(row=row, column=col, sticky="w", padx=(0, 6), pady=4)
-            variable = tk.BooleanVar(value=True) if field.get("type") == "bool" else tk.StringVar()
-            self.inputs[field["name"]] = variable
+            nome = field["name"]
             if field.get("type") == "bool":
+                variable: tk.Variable = tk.BooleanVar(value=True)
                 widget = ttk.Checkbutton(form, variable=variable)
+            elif field.get("lookup"):
+                variable = IdVar()
+                widget = Seletor(form, variable, getattr(lookups, field["lookup"]), largura=24)
+                self.seletores[nome] = widget
+            elif field.get("choices"):
+                variable = tk.StringVar()
+                widget = ttk.Combobox(form, textvariable=variable, values=field["choices"], width=22, state="readonly" if field.get("readonly") else "normal")
             else:
+                variable = tk.StringVar()
                 widget = ttk.Entry(form, textvariable=variable, width=24)
+            self.inputs[nome] = variable
             widget.grid(row=row, column=col + 1, sticky="ew", padx=(0, 14), pady=4)
             form.columnconfigure(col + 1, weight=1)
 
         actions = ttk.Frame(self, style="Surface.TFrame")
         actions.pack(fill="x", pady=12)
         ttk.Button(actions, text="Novo", command=self.limpar).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Salvar", command=self.salvar, style="Primary.TButton").pack(side="left", padx=(0, 8))
+        modulo = getattr(controller, "modulo", "")
+        self.botao_salvar = ttk.Button(actions, text="Salvar", command=self.salvar, style="Primary.TButton")
+        self.botao_salvar.pack(side="left", padx=(0, 8))
+        if modulo and not (Sessao.pode(modulo, "criar") or Sessao.pode(modulo, "editar")):
+            self.botao_salvar.state(["disabled"])
         ttk.Button(actions, text="Atualizar", command=self.carregar).pack(side="left")
 
         table_frame = ttk.LabelFrame(self, text="Registros", padding=10, style="Section.TLabelframe")
         table_frame.pack(fill="both", expand=True)
-
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=14)
-        for column in columns:
-            self.tree.heading(column, text=column.replace("_", " ").title())
-            self.tree.column(column, width=120, anchor="w")
-        yscroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        xscroll = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
-        self.tree.grid(row=0, column=0, sticky="nsew")
-        yscroll.grid(row=0, column=1, sticky="ns")
-        xscroll.grid(row=1, column=0, sticky="ew")
-        table_frame.columnconfigure(0, weight=1)
-        table_frame.rowconfigure(0, weight=1)
-        self.tree.bind("<<TreeviewSelect>>", self._selecionar)
+        self.tabela = TabelaFiltravel(table_frame, columns, altura=12)
+        self.tabela.pack(fill="both", expand=True)
+        self.tree = self.tabela.tree
+        self.tabela.ao_selecionar(self._selecionar)
 
         self.itens: dict[str, object] = {}
         self.carregar()
 
     def carregar(self) -> None:
-        for row in self.tree.get_children():
-            self.tree.delete(row)
         self.itens.clear()
-        for item in self.controller.listar():
-            values = [format_value(getattr(item, column, "")) for column in self.columns]
-            item_id = str(getattr(item, "id"))
+        try:
+            registros = self.controller.listar()
+        except Exception as exc:
+            messagebox.showerror("Erro", str(exc))
+            return
+        linhas = []
+        for item in registros:
+            item_id = str(item.id)
             self.itens[item_id] = item
-            self.tree.insert("", "end", iid=item_id, values=values)
+            linhas.append((item_id, [valor_coluna(item, coluna) for coluna in self.columns]))
+        self.tabela.preencher(linhas)
+        for seletor in self.seletores.values():
+            seletor.recarregar()
 
     def limpar(self) -> None:
         for field in self.fields:
             variable = self.inputs[field["name"]]
-            if field.get("type") == "bool":
-                variable.set(True)
-            else:
-                variable.set("")
+            variable.set(True if field.get("type") == "bool" else "")
         self.tree.selection_remove(self.tree.selection())
 
     def salvar(self) -> None:
@@ -92,10 +108,13 @@ class CrudFrame(ttk.Frame):
 
     def _selecionar(self, _event) -> None:
         selection = self.tree.selection()
-        if not selection:
+        if not selection or selection[0] not in self.itens:
             return
         item = self.itens[selection[0]]
         for field in self.fields:
             name = field["name"]
             value = getattr(item, name, "")
-            self.inputs[name].set(value if value is not None else "")
+            if name in self.seletores:
+                self.seletores[name].definir_id(value)
+            else:
+                self.inputs[name].set(value if value is not None else "")

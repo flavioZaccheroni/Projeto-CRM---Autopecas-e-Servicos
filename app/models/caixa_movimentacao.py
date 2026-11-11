@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
+from app.utils.datas import agora
 
 
 class CaixaMovimentacao(Base):
@@ -16,6 +17,6 @@ class CaixaMovimentacao(Base):
     valor: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     forma_pagamento: Mapped[str] = mapped_column(String(30), nullable=False)
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"))
-    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, nullable=False)
 
     usuario = relationship("Usuario")

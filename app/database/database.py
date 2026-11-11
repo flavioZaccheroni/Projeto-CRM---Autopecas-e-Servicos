@@ -1,8 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from app.config.settings import DATABASE_URL, DATA_DIR
-
+from app.config.settings import DATA_DIR, DATABASE_URL
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -25,17 +24,20 @@ SessionLocal = sessionmaker(
 )
 
 
-def create_database() -> None:
+def importar_modelos() -> None:
+    """Registra todos os modelos em Base.metadata (necessario antes de create_all/Alembic)."""
     from app.models import (  # noqa: F401
-        categoria_produto,
+        auditoria,
         caixa_movimentacao,
+        categoria_produto,
         cliente,
-        configuracao,
         compra,
+        configuracao,
         estoque,
-        fornecedor,
         financeiro_lancamento,
+        fornecedor,
         item_compra,
+        item_os,
         item_venda,
         marca_produto,
         movimentacao_estoque,
@@ -43,11 +45,16 @@ def create_database() -> None:
         perfil,
         permissao,
         produto,
+        sequencia,
         usuario,
-        venda,
         veiculo,
-        item_os,
-        auditoria,
+        venda,
     )
 
-    Base.metadata.create_all(bind=engine)
+
+def create_database() -> None:
+    """Cria/atualiza o schema aplicando as migracoes do Alembic ate a versao mais recente."""
+    from app.database.alembic_runner import upgrade_to_head
+
+    importar_modelos()
+    upgrade_to_head(engine)

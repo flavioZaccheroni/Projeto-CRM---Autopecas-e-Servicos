@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
+from app.utils.datas import agora
 
 
 class Auditoria(Base):
@@ -15,6 +16,6 @@ class Auditoria(Base):
     entidade_id: Mapped[int | None] = mapped_column(Integer)
     acao: Mapped[str] = mapped_column(String(80), nullable=False)
     detalhes: Mapped[str | None] = mapped_column(Text)
-    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, nullable=False)
 
     usuario = relationship("Usuario")

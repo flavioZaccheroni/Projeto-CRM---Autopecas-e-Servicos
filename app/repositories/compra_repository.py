@@ -6,6 +6,8 @@ from app.repositories.base_repository import BaseRepository
 
 
 class CompraRepository(BaseRepository[Compra]):
+    eager_load = ('fornecedor',)
+
     def __init__(self, session: Session) -> None:
         super().__init__(session, Compra)
 

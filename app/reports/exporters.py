@@ -1,6 +1,6 @@
+import html
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
-import html
 
 
 def export_xlsx(path: Path, title: str, headers: list[str], rows: list[list[object]]) -> Path:
@@ -16,9 +16,15 @@ def export_xlsx(path: Path, title: str, headers: list[str], rows: list[list[obje
 
 
 def export_pdf(path: Path, title: str, headers: list[str], rows: list[list[object]]) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
     lines = [title, "", " | ".join(headers)]
     lines.extend(" | ".join(_pdf_text(value) for value in row) for row in rows)
+    return export_pdf_linhas(path, lines)
+
+
+def export_pdf_linhas(path: Path, lines: list[str]) -> Path:
+    """Gera um PDF simples com uma linha de texto por item de `lines` (42 linhas por pagina)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    title = lines[0] if lines else "Documento"
     pages = [lines[index : index + 42] for index in range(0, len(lines), 42)] or [[title]]
 
     objects: list[str] = []
