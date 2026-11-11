@@ -1,6 +1,6 @@
-from datetime import date, datetime
-from decimal import Decimal
 from tkinter import ttk
+
+from app.utils.formatacao import format_value  # noqa: F401  (reexportado para as views Tk)
 
 COLORS = {
     "app_bg": "#f4f6f8",
@@ -70,18 +70,3 @@ def configure_style(root) -> None:
     style.configure("BrandTitle.TLabel", background=COLORS["sidebar"], foreground="#ffffff", font=("Segoe UI", 20, "bold"))
     style.configure("BrandText.TLabel", background=COLORS["sidebar"], foreground=COLORS["sidebar_muted"], font=("Segoe UI", 10))
     style.configure("Error.TLabel", background=COLORS["surface"], foreground=COLORS["danger"], font=("Segoe UI", 9))
-
-
-def format_value(value) -> str:
-    """Formata para exibicao: datas dd/mm/aaaa, valores no padrao brasileiro, booleanos como Sim/Nao."""
-    if value is None:
-        return ""
-    if isinstance(value, bool):
-        return "Sim" if value else "Nao"
-    if isinstance(value, datetime):
-        return value.strftime("%d/%m/%Y %H:%M")
-    if isinstance(value, date):
-        return value.strftime("%d/%m/%Y")
-    if isinstance(value, Decimal):
-        return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return str(value)
