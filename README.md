@@ -3,7 +3,7 @@
 [![CI](https://github.com/flavioZaccheroni/Projeto-CRM---Autopecas-e-Servicos/actions/workflows/ci.yml/badge.svg)](https://github.com/flavioZaccheroni/Projeto-CRM---Autopecas-e-Servicos/actions/workflows/ci.yml)
 
 Sistema desktop (Windows) de gestão para autopeças e oficinas: cadastros, estoque, compras, vendas com orçamento,
-ordens de serviço, financeiro, relatórios, controle de acesso por perfil e backup. Python + Tkinter + SQLAlchemy + SQLite.
+ordens de serviço, financeiro, relatórios, controle de acesso por perfil e backup. Python + PySide6 (Qt) + SQLAlchemy + SQLite.
 
 ![Dashboard](docs/screenshots/01-dashboard.png)
 
@@ -21,8 +21,10 @@ ordens de serviço, financeiro, relatórios, controle de acesso por perfil e bac
 | **Relatórios** | Vendas, estoque, OS, financeiro e caixa em PDF e Excel. |
 | **Segurança** | Perfis e permissões (ver/criar/editar/excluir por módulo), troca de senha obrigatória, bloqueio por tentativas, backup/restauração validados e auditoria de todas as escritas. |
 
-Na interface: seletores "ID – nome" com busca, filtro em todas as listagens (sem diferenciar acentos), atalhos
+Na interface (PySide6, tema claro e escuro, menu recolhível, paleta de comandos `Ctrl+K`): seletores "ID – nome" com busca, filtro em todas as listagens (sem diferenciar acentos), atalhos
 `F5` (recarregar) e `Ctrl+F` (buscar).
+
+![Dashboard no tema escuro](docs/screenshots/11-dashboard-escuro.png)
 
 <table>
   <tr>
@@ -39,7 +41,7 @@ Mais telas em [`docs/screenshots/`](docs/screenshots) (login, clientes, produtos
 
 ## Como executar
 
-Requer Python 3.12+ no Windows.
+Requer Python 3.12+ no Windows (a interface usa PySide6, instalado pelo `requirements.txt`).
 
 ```powershell
 python -m venv .venv
@@ -71,7 +73,7 @@ app/
 ├── repositories/  acesso a dados (BaseRepository + eager loading)
 ├── services/      regras de negócio (estoque, financeiro, vendas, OS, compras, dashboard, segurança)
 ├── controllers/   fronteira da UI: permissões (@requer_permissao) + auditoria + transação
-├── views/         telas Tkinter/ttk (widgets reutilizáveis: Seletor, TabelaFiltravel)
+├── ui/            interface PySide6: tema claro/escuro, componentes, formulários por especificação e páginas
 ├── database/      engine, migrações Alembic
 ├── reports/       exportadores PDF/XLSX
 └── tests/         pytest (unidade, fluxo de negócio e controllers de ponta a ponta)
@@ -94,7 +96,7 @@ O GitHub Actions executa lint e testes a cada push/PR ([`.github/workflows/ci.ym
 
 ```powershell
 pip install -r requirements-build.txt
-python scripts/build_release.py --version 2.0.0
+python scripts/build_release.py --version 3.0.0
 ```
 
 Gera `releases/ERP_Autopecas_<versão>_windows.zip` (executável PyInstaller em pasta, com dados e backups ao lado do

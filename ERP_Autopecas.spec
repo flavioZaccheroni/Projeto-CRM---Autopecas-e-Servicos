@@ -11,7 +11,8 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    # a interface e PySide6 (Essentials); o que nao e usado fica de fora para reduzir o pacote
+    excludes=['tkinter', '_tkinter', 'PySide6.QtWebEngineCore', 'PySide6.QtQml', 'PySide6.QtQuick', 'PySide6.Qt3DCore', 'PySide6.QtMultimedia', 'PySide6.QtPdf'],
     noarchive=False,
     optimize=0,
 )

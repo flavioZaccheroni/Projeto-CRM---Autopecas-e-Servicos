@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.config.settings import APP_VERSION
 from app.ui import icones
 from app.ui.componentes import Avisos, Botao, EstadoVazio, rotulo
 from app.ui.tema import ao_mudar_tema, tema
@@ -158,7 +159,7 @@ class BarraLateral(QFrame):
                 self._botoes[item.chave] = botao
                 corpo.addWidget(botao)
         corpo.addStretch()
-        self.versao = rotulo("v3 · redesign", "grupo")
+        self.versao = rotulo(f"Versão {APP_VERSION}", "grupo")
         self.versao.setContentsMargins(8, 0, 0, 4)
         corpo.addWidget(self.versao)
         ao_mudar_tema(self, self._logo)

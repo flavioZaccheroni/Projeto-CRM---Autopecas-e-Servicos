@@ -36,26 +36,3 @@ jobs:
         with:
           name: ERP_Autopecas_windows
           path: releases/ERP_Autopecas_ci-*_windows.zip
-
-  spike-pyside6:
-    name: Spike PySide6 + PyInstaller
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python -m pip install PySide6-Essentials pyinstaller
-      - name: Empacotar
-        run: python -m PyInstaller --noconfirm --windowed --name spike scripts/spike/pyside_spike.py
-      - name: Abrir o .exe empacotado
-        shell: pwsh
-        run: |
-          $p = Start-Process dist\spike\spike.exe -ArgumentList "--selftest" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Spike falhou (exit $($p.ExitCode))" }
-          "Spike PySide6 abriu OK" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
-      - name: Tamanho
-        shell: pwsh
-        run: |
-          $mb = [math]::Round((Get-ChildItem dist\spike -Recurse | Measure-Object Length -Sum).Sum / 1MB, 1)
-          "Pasta do spike: $mb MB" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append

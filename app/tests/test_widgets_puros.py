@@ -2,8 +2,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
-from app.views.theme import format_value
-from app.views.widgets import extrair_id, filtrar_linhas, normalizar, titulo_coluna, valor_coluna
+from app.utils.busca import extrair_id, filtrar_linhas, normalizar, titulo_coluna, valor_coluna
+from app.utils.formatacao import format_value
 
 
 def test_normalizar_remove_acentos_e_caixa():

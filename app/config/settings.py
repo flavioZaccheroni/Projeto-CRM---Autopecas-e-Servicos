@@ -12,3 +12,4 @@ DATABASE_URL = f"sqlite:///{DATA_DIR / 'erp_autopecas.db'}"
 DATABASE_FILE = DATA_DIR / "erp_autopecas.db"
 
 APP_NAME = "ERP CRM Autopecas & Servicos"
+APP_VERSION = "3.0.0"

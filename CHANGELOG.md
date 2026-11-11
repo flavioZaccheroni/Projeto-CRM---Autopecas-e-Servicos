@@ -2,6 +2,24 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.0.0]
+
+### Adicionado
+- **Nova interface em PySide6 (Qt)**, substituindo as telas Tkinter: login, shell com menu lateral recolhível,
+  paleta de comandos (`Ctrl+K`), tema claro/escuro, avisos e estados vazios.
+- Dashboard com KPIs e gráficos desenhados em QPainter; cadastros com painel lateral de edição; documentos
+  (compras, vendas, OS) com linha de etapas, itens e ações por status e permissão; estoque, financeiro,
+  relatórios, usuários, permissões, segurança/backup, auditoria e configurações.
+- Tabelas com busca que ignora acentos, ordenação e exportação CSV.
+
+### Alterado
+- `main.py` abre a interface Qt; o autoteste do `.exe` (`--selftest`) valida Alembic e a inicialização do Qt.
+- Camadas de modelo, serviço e controller ficaram intactas; helpers de formatação e busca foram para `app/utils`.
+- Pacote do executável maior (inclui o Qt); PyInstaller exclui módulos Qt não usados e o Tk.
+
+### Removido
+- Pacote `app/views` (Tkinter).
+
 ## [2.0.1]
 
 ### Corrigido
