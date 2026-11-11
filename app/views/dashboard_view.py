@@ -131,7 +131,7 @@ class DashboardFrame(ttk.Frame):
     def _tabela_estoque(self, pai, linhas) -> None:
         moldura = ttk.LabelFrame(pai, text="Estoque abaixo do minimo", padding=10, style="Section.TLabelframe")
         moldura.grid(row=0, column=1, sticky="nsew", pady=(0, 12))
-        tabela = TabelaFiltravel(moldura, ["codigo", "descricao", "atual", "minimo"], altura=5, larguras={"codigo": 70, "descricao": 170, "atual": 60, "minimo": 60}, filtro=False)
+        tabela = TabelaFiltravel(moldura, ["codigo", "descricao", "atual", "minimo"], altura=5, larguras={"codigo": 60, "descricao": 130, "atual": 50, "minimo": 55}, filtro=False)
         tabela.pack(fill="both", expand=True)
         tabela.preencher([(i, list(l)) for i, l in enumerate(linhas)])
         if not linhas:
@@ -140,7 +140,7 @@ class DashboardFrame(ttk.Frame):
     def _tabela_vencimentos(self, pai, linhas) -> None:
         moldura = ttk.LabelFrame(pai, text="Proximos vencimentos", padding=10, style="Section.TLabelframe")
         moldura.grid(row=1, column=1, sticky="nsew")
-        tabela = TabelaFiltravel(moldura, ["vencimento", "tipo", "descricao", "valor"], altura=5, larguras={"vencimento": 85, "tipo": 70, "descricao": 150, "valor": 80}, filtro=False)
+        tabela = TabelaFiltravel(moldura, ["vencimento", "tipo", "descricao", "valor"], altura=5, larguras={"vencimento": 80, "tipo": 65, "descricao": 120, "valor": 70}, filtro=False)
         tabela.pack(fill="both", expand=True)
         tabela.preencher([(i, [data, tipo, desc, valor]) for i, (data, tipo, desc, valor, _vencido) in enumerate(linhas)])
         tabela.tree.tag_configure("vencido", foreground=COLORS["danger"])

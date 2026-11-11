@@ -25,7 +25,7 @@ class MainWindow:
         self.active_button: tk.Button | None = None
         self.root = tk.Tk()
         self.root.title(APP_NAME)
-        self.root.geometry("1280x760")
+        self.root.geometry("1320x800")
         self.root.minsize(1100, 680)
         configure_style(self.root)
 

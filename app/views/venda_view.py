@@ -102,10 +102,10 @@ class VendaFrame(ttk.Frame):
         ttk.Label(form, text="Parcelas").grid(row=0, column=2, padx=(0, 6), sticky="w")
         ttk.Spinbox(form, from_=1, to=60, textvariable=self.fin_inputs["parcelas"], width=5).grid(row=0, column=3, padx=(0, 10))
         ttk.Label(form, text="Pagamento").grid(row=0, column=4, padx=(0, 6), sticky="w")
-        ttk.Combobox(form, textvariable=self.fin_inputs["forma_pagamento"], values=FORMAS_PAGAMENTO, width=16).grid(row=0, column=5, padx=(0, 12))
-        aplicar_permissao(ttk.Button(form, text="Aprovar orcamento", command=self.aprovar), "vendas", "editar").grid(row=0, column=6, padx=(0, 6))
+        ttk.Combobox(form, textvariable=self.fin_inputs["forma_pagamento"], values=FORMAS_PAGAMENTO, width=14).grid(row=0, column=5, padx=(0, 12))
+        aplicar_permissao(ttk.Button(form, text="Aprovar", command=self.aprovar), "vendas", "editar").grid(row=0, column=6, padx=(0, 6))
         aplicar_permissao(ttk.Button(form, text="Recusar", command=self.recusar), "vendas", "editar").grid(row=0, column=7, padx=(0, 6))
-        aplicar_permissao(ttk.Button(form, text="Finalizar venda", command=self.finalizar_venda, style="Primary.TButton"), "vendas", "editar").grid(row=0, column=8, padx=(0, 6))
+        aplicar_permissao(ttk.Button(form, text="Finalizar", command=self.finalizar_venda, style="Primary.TButton"), "vendas", "editar").grid(row=0, column=8, padx=(0, 6))
         aplicar_permissao(ttk.Button(form, text="Cancelar", command=self.cancelar), "vendas", "excluir").grid(row=0, column=9)
 
     def _venda_id(self) -> int:

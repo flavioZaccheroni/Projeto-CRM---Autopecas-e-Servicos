@@ -35,6 +35,7 @@ def configure_style(root) -> None:
     style.configure(".", font=("Segoe UI", 10), foreground=COLORS["text"])
     style.configure("App.TFrame", background=COLORS["app_bg"])
     style.configure("Surface.TFrame", background=COLORS["surface"])
+    style.configure("TCheckbutton", background=COLORS["surface"], foreground=COLORS["text"])
     style.configure("Header.TLabel", background=COLORS["surface"], foreground=COLORS["text"], font=("Segoe UI", 18, "bold"))
     style.configure("Subtle.TLabel", background=COLORS["surface"], foreground=COLORS["muted"], font=("Segoe UI", 10))
     style.configure("Section.TLabelframe", background=COLORS["surface"], bordercolor=COLORS["border"], relief="solid")

@@ -55,7 +55,7 @@ class ItensPanel(ttk.LabelFrame):
         self._listar, self._editar, self._remover = listar, editar, remover
         self._valores_form, self._ao_alterar = valores_form, ao_alterar
         self._documento_id: int | None = None
-        self.tree = ttk.Treeview(self, columns=colunas, show="headings", height=4)
+        self.tree = ttk.Treeview(self, columns=colunas, show="headings", height=3)
         for coluna in colunas:
             self.tree.heading(coluna, text=titulo_coluna(coluna))
             self.tree.column(coluna, width=110, anchor="w")
