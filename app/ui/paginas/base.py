@@ -23,6 +23,11 @@ class Pagina(QWidget):
     def focar_busca(self) -> bool:
         return False
 
+    def ir_para(self, chave: str) -> None:
+        janela = self.window()
+        if hasattr(janela, "abrir"):
+            janela.abrir(chave)
+
     def avisar(self, texto: str, tom: str = "info") -> None:
         janela = self.window()
         if hasattr(janela, "avisos"):

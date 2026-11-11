@@ -650,6 +650,6 @@ class Avisos(QObject):
             y -= 10
 
     def eventFilter(self, origem: QObject, evento: QEvent) -> bool:  # noqa: N802
-        if origem is self._janela and evento.type() == QEvent.Type.Resize:
+        if origem is getattr(self, "_janela", None) and evento.type() == QEvent.Type.Resize:
             self._posicionar()
         return False

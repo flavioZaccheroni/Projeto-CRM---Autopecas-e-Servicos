@@ -130,6 +130,7 @@ class BarraLateral(QFrame):
         corpo.setContentsMargins(12, 14, 12, 12)
         corpo.setSpacing(2)
         marca = QHBoxLayout()
+        marca.setSpacing(10)
         self.logo = QLabel()
         self.logo.setFixedSize(34, 34)
         self.logo.setAlignment(Qt.AlignmentFlag.AlignCenter)

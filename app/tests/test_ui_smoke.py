@@ -71,3 +71,21 @@ def test_login_e_janela_principal(qapp, app_db):
         principal = JanelaPrincipal(usuario, fabricas_de_paginas(usuario))
         principal.show()
         principal.close()
+
+
+def test_dashboard_e_graficos(qapp, app_db):
+    from app.controllers.auth_controller import AuthController
+    from app.ui.graficos import GraficoBarras, moeda_curta
+    from app.ui.paginas.dashboard import PaginaDashboard, variacao
+
+    assert moeda_curta(1250) == "1,3 mil" and moeda_curta(2_500_000) == "2,5 mi" and moeda_curta(80) == "80"
+    assert variacao(150, 100)[1] == "sucesso" and variacao(50, 100)[1] == "perigo" and variacao(10, 0)[1] == "info"
+    grafico = GraficoBarras()
+    grafico.definir_dados([("Jan", 10), ("Fev", 20)], animar=False)
+    grafico.resize(400, 240)
+    assert not grafico.grab().isNull() and len(grafico.dados()) == 2
+    usuario = AuthController().autenticar("admin", "admin123")
+    pagina = PaginaDashboard(usuario)
+    pagina.resize(1100, 800)
+    pagina.recarregar()
+    assert not pagina.grab().isNull()
