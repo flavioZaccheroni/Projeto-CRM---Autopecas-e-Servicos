@@ -64,3 +64,25 @@ def app_db(tmp_path, monkeypatch):
     Sessao.encerrar()
     yield factory
     Sessao.encerrar()
+
+
+# Widgets Qt criados nos testes ficam vivos ate o fim do processo: destrui-los em Python enquanto sinais
+# ainda apontam para eles derruba o Qt (segfault intermitente, exit 139, que reprovava o CI).
+_VIVOS: list = []
+
+
+def _manter_widgets_vivos() -> None:
+    try:
+        from PySide6.QtWidgets import QWidget
+    except ImportError:
+        return
+    original = QWidget.__init__
+
+    def __init__(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        _VIVOS.append(self)
+
+    QWidget.__init__ = __init__
+
+
+_manter_widgets_vivos()

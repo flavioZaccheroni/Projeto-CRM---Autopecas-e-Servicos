@@ -285,8 +285,8 @@ PAPEL_TOM = Qt.ItemDataRole.UserRole + 2
 
 
 class ModeloTabela(QAbstractTableModel):
-    def __init__(self, colunas: list[Coluna]) -> None:
-        super().__init__()
+    def __init__(self, colunas: list[Coluna], parent: QObject | None = None) -> None:
+        super().__init__(parent)
         self.colunas = colunas
         self._linhas: list[tuple[object, list]] = []
         self._busca: list[str] = []
@@ -334,8 +334,8 @@ class ModeloTabela(QAbstractTableModel):
 class ProxyTabela(QSortFilterProxyModel):
     """Filtro por todas as palavras (sem acento/caixa) e ordenacao pelo valor bruto (numero/data)."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
         self._palavras: list[str] = []
 
     def definir_termo(self, termo: str) -> None:
@@ -402,8 +402,10 @@ class TabelaDados(QWidget):
     ) -> None:
         super().__init__(parent)
         self.colunas = colunas
-        self.modelo = ModeloTabela(colunas)
-        self.proxy = ProxyTabela()
+        # modelos filhos da propria view: sao destruidos depois dela (o contrario derruba o Qt)
+        self.tabela = QTableView()
+        self.modelo = ModeloTabela(colunas, self.tabela)
+        self.proxy = ProxyTabela(self.tabela)
         self.proxy.setSourceModel(self.modelo)
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(0, 0, 0, 0)
@@ -418,7 +420,6 @@ class TabelaDados(QWidget):
         self.barra.addStretch()
         raiz.addLayout(self.barra)
 
-        self.tabela = QTableView()
         self.tabela.setModel(self.proxy)
         self.tabela.setAlternatingRowColors(True)
         self.tabela.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -458,11 +459,22 @@ class TabelaDados(QWidget):
 
         self.busca.textChanged.connect(self._ao_buscar)
         self.tabela.selectionModel().selectionChanged.connect(self._ao_selecionar)
-        self.tabela.doubleClicked.connect(lambda i: self.ativado.emit(i.data(PAPEL_ID)))
+        self.tabela.doubleClicked.connect(self._ao_duplo_clique)
         self.proxy.layoutChanged.connect(self._atualizar_estado)
         self.proxy.rowsInserted.connect(self._atualizar_estado)
         self.proxy.modelReset.connect(self._atualizar_estado)
         self._atualizar_estado()
+
+    def _ao_duplo_clique(self, indice: QModelIndex) -> None:
+        self.ativado.emit(indice.data(PAPEL_ID))
+
+    def __del__(self) -> None:
+        # solta os sinais dos modelos antes da destruicao em C++ (senao eles chamam o widget ja meio destruido)
+        try:
+            for sinal in (self.proxy.layoutChanged, self.proxy.rowsInserted, self.proxy.modelReset, self.tabela.doubleClicked):
+                sinal.disconnect()
+        except (RuntimeError, TypeError, AttributeError):
+            pass
 
     # dados
     def definir_dados(self, linhas: Iterable[tuple[object, list]]) -> None:

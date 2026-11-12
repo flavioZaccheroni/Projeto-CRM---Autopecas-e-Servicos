@@ -13,10 +13,20 @@ from app.ui import icones  # noqa: E402
 from app.ui.componentes import Coluna, KpiCard, Seletor, TabelaDados  # noqa: E402
 from app.ui.tema import TOKENS, gerar_qss, tema  # noqa: E402
 
+_APP: QApplication | None = None
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="session")
 def qapp():
-    return QApplication.instance() or QApplication([])
+    """Uma unica QApplication, mantida viva ate o fim do processo (destrui-la antes dos widgets causa segfault)."""
+    global _APP
+    _APP = QApplication.instance() or QApplication([])
+    yield _APP
+    # destroi os widgets orfaos com a QApplication ainda viva (a ordem de destruicao no
+    # encerramento do interpretador e aleatoria e causava segfault intermitente, exit 139)
+    import gc
+
+    gc.collect()
 
 
 def test_qss_gerado_para_os_dois_temas():
@@ -210,7 +220,8 @@ def test_os_compra_estoque_financeiro_relatorios_constroem(qapp, app_db):
     assert situacao(lanc) == "Vencido"
     financeiro.tab_lanc.selecionar(str(lanc.id))
     assert financeiro.botao_baixar.isEnabled() and not financeiro.botao_estornar.isEnabled()
-    PaginaRelatorios()
+    relatorios = PaginaRelatorios()
+    assert relatorios.cartoes
     for pagina in (os_page, compra_page, estoque, financeiro):
         pagina.resize(1200, 760)
         assert not pagina.grab().isNull()
