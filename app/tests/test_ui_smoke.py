@@ -74,6 +74,7 @@ def test_login_e_janela_principal(qapp, app_db):
 
     janela_login = JanelaLogin()
     assert janela_login.windowTitle()
+    assert "30 dias" in janela_login.aviso_demo.text()
     usuario = AuthController().autenticar("admin", "admin123")
     assert usuario is not None
     for modo in ("escuro", "claro"):

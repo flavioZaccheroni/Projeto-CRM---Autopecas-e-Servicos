@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.config.settings import APP_VERSION
+from app.config.settings import APP_VERSION, AVISO_DEMO, AVISO_DEMO_CURTO
 from app.ui import icones
 from app.ui.componentes import Avisos, Botao, EstadoVazio, rotulo
 from app.ui.tema import ao_mudar_tema, tema
@@ -159,7 +159,8 @@ class BarraLateral(QFrame):
                 self._botoes[item.chave] = botao
                 corpo.addWidget(botao)
         corpo.addStretch()
-        self.versao = rotulo(f"Versão {APP_VERSION}", "grupo")
+        self.versao = rotulo(f"Versão {APP_VERSION}\n{AVISO_DEMO_CURTO}", "grupo")
+        self.versao.setToolTip(AVISO_DEMO)
         self.versao.setContentsMargins(8, 0, 0, 4)
         corpo.addWidget(self.versao)
         ao_mudar_tema(self, self._logo)
@@ -378,7 +379,7 @@ class JanelaPrincipal(QMainWindow):
         super().__init__()
         self.usuario = usuario
         self.fabricas = fabricas or {}
-        self.setWindowTitle("ERP CRM Autopeças & Serviços")
+        self.setWindowTitle("ERP CRM Autopeças & Serviços — Versão de demonstração")
         self.resize(1360, 820)
         self.setMinimumSize(1060, 660)
         self._paginas: dict[str, QWidget] = {}
