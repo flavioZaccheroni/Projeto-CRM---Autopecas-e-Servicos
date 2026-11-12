@@ -100,7 +100,7 @@ python scripts/build_release.py --version 3.0.0
 ```
 
 Gera `releases/ERP_Autopecas_<versão>_windows.zip` (executável PyInstaller em pasta, com dados e backups ao lado do
-`.exe`) e o pacote-fonte `erp_autopecas_<versão>.zip`. Use `--skip-exe` para gerar só o pacote portátil. O executável
+`.exe`) e o pacote-fonte `erp_autopecas_<versão>.zip`. O executável já vem com uma base de demonstração fictícia em `data/` (acesso `admin` / `Demo@1234`), para avaliação por até 30 dias, sem dados reais. Use `--skip-exe` para gerar só o pacote portátil. O executável
 não é assinado digitalmente; em máquinas com políticas como Smart App Control/WDAC ele pode ser bloqueado — nesse caso
 execute a partir do código-fonte.
 

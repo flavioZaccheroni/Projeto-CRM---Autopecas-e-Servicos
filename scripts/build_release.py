@@ -31,6 +31,7 @@ def main() -> int:
     if not args.skip_exe:
         exe_path = _try_build_exe()
         if exe_path and exe_path.exists():
+            _incluir_base_demo(exe_path.parent / "data")
             # onedir: o .exe precisa da pasta _internal ao lado, entao copiamos a pasta inteira
             shutil.copytree(exe_path.parent, release_dir / "bin" / exe_path.parent.name)
             portatil = RELEASES_DIR / f"ERP_Autopecas_{args.version}_windows.zip"
@@ -105,18 +106,26 @@ def _try_build_exe() -> Path | None:
     if result.returncode != 0:
         print("PyInstaller falhou; mantendo release portatil.")
         return None
-    if _pyinstaller_warned_broken_tkinter():
-        print("PyInstaller detectou Tkinter/Tcl quebrado neste ambiente; .exe nao sera incluido.")
-        return None
     return DIST_DIR / "ERP_Autopecas" / "ERP_Autopecas.exe"
 
 
-def _pyinstaller_warned_broken_tkinter() -> bool:
-    warning_file = ROOT_DIR / "build" / "ERP_Autopecas" / "warn-ERP_Autopecas.txt"
-    if not warning_file.exists():
-        return False
-    warning_text = warning_file.read_text(encoding="utf-8", errors="ignore").lower()
-    return "tkinter installation is broken" in warning_text or "missing module named tkinter" in warning_text
+def _incluir_base_demo(destino: Path) -> None:
+    """Gera a base de demonstracao (dados 100% ficticios) e a coloca em data/ ao lado do .exe.
+
+    Assim quem baixa o executavel ja abre o sistema preenchido: admin / Demo@1234.
+    """
+    resultado = subprocess.run([sys.executable, str(ROOT_DIR / "scripts" / "gerar_demo.py"), "--recriar"], cwd=ROOT_DIR, check=False)
+    banco = ROOT_DIR / "demo" / "erp_autopecas.db"
+    if resultado.returncode != 0 or not banco.exists():
+        raise SystemExit("Falha ao gerar a base de demonstracao; release cancelado.")
+    destino.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(banco, destino / "erp_autopecas.db")
+    (destino / "LEIA-ME.txt").write_text(
+        "Base de DEMONSTRACAO com dados 100% ficticios.\n"
+        "Acesso: admin / Demo@1234  ou  vendedor / Demo@1234\n"
+        "Uso apenas para testes, por ate 30 dias, sem dados reais.\n",
+        encoding="utf-8",
+    )
 
 
 def _module_available(module_name: str) -> bool:

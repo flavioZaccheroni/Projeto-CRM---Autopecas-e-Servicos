@@ -27,6 +27,11 @@ jobs:
           $p = Start-Process dist\ERP_Autopecas\ERP_Autopecas.exe -ArgumentList "--selftest" -Wait -PassThru
           Get-Content "$env:ERP_DATA_DIR\selftest.txt" -ErrorAction SilentlyContinue
           if ($p.ExitCode -ne 0) { throw "Autoteste falhou (exit $($p.ExitCode))" }
+      - name: Base de demonstracao incluida no pacote
+        shell: pwsh
+        run: |
+          if (-not (Test-Path dist\ERP_Autopecas\data\erp_autopecas.db)) { throw "Base de demonstracao ausente no pacote" }
+          Get-Item dist\ERP_Autopecas\data\erp_autopecas.db | Select-Object Name, Length
       - name: Tamanho do pacote
         shell: pwsh
         run: |

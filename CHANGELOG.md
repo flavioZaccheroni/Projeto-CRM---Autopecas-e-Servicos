@@ -6,6 +6,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ### Adicionado
 - Aviso de **versão de demonstração (uso apenas para testes, 30 dias, sem dados reais)** na tela de login, no menu lateral e no título das janelas.
+- O executável agora já inclui uma **base de demonstração** (dados 100% fictícios, em `data/`): acesso `admin` / `Demo@1234` ou `vendedor` / `Demo@1234`. O build no CI confere que ela está no pacote.
+
+### Removido
+- Verificação de Tkinter quebrado no `build_release.py` (a interface não usa mais Tk).
 
 ## [3.0.0]
 
