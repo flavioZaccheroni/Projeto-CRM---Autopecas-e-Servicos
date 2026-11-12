@@ -2,6 +2,11 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.0.1]
+
+### Adicionado
+- Aviso de **versão de demonstração (uso apenas para testes, 30 dias, sem dados reais)** na tela de login, no menu lateral e no título das janelas.
+
 ## [3.0.0]
 
 ### Adicionado
