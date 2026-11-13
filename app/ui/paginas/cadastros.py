@@ -16,6 +16,7 @@ from app.controllers.cadastro_controller import (
     FornecedorController,
     MarcaProdutoController,
     ProdutoController,
+    ServicoController,
     VeiculoController,
 )
 from app.controllers.lookup_controller import LookupController
@@ -148,6 +149,23 @@ ESPECS: dict[str, EspecCadastro] = {
             ("marca.nome", Coluna("Marca", "texto", 85)),
             ("preco_venda", Coluna("Preço", "num", 80)),
             ("estoque_minimo", Coluna("Mín.", "num", 60)),
+        ],
+    ),
+    "Servicos": EspecCadastro(
+        "Servicos", "serviço", "serviços", "Mão de obra com preço padrão e tempo estimado: alimenta os itens da ordem de serviço.", ServicoController,
+        [
+            Campo("nome", "Nome do serviço"),
+            Campo("descricao", "Descrição"),
+            Campo("preco_padrao", "Preço padrão (R$)", metade=True),
+            Campo("tempo_estimado_min", "Tempo estimado (min)", metade=True),
+            Campo("ativo", "Serviço ativo", "bool"),
+        ],
+        [
+            ("id", Coluna("ID", "num", 50)),
+            ("nome", Coluna("Serviço", "texto", 260)),
+            ("preco_padrao", Coluna("Preço", "num", 90)),
+            ("tempo_estimado_min", Coluna("Min.", "num", 60)),
+            ("ativo", Coluna("Situação", "emblema", 90, TONS_ATIVO)),
         ],
     ),
 }

@@ -68,6 +68,14 @@ class OrdemServicoController:
             return item
 
     @requer_permissao("os", "editar")
+    def definir_mecanico(self, os_id: int, mecanico: str = ""):
+        with SessionLocal() as session:
+            ordem = _service(session).definir_mecanico(os_id, mecanico)
+            auditar(session, "os", "MECANICO", f"{ordem.numero}: {ordem.mecanico or '-'}", ordem.id)
+            session.commit()
+            return ordem
+
+    @requer_permissao("os", "editar")
     def definir_desconto(self, os_id: int, desconto="", acrescimo=""):
         """Desconto/acrescimo em R$ ou %, respeitando o limite do perfil (administrador sem limite)."""
         with SessionLocal() as session:

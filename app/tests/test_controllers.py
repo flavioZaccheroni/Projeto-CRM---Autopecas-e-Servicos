@@ -255,3 +255,45 @@ def test_pdf_usa_dados_da_empresa_e_logo(app_db, tmp_path, monkeypatch):
     conteudo = venda.imprimir_venda(v.id).read_bytes()
     assert b"Auto Pecas Teste" in conteudo and b"CNPJ: 11.222.333/0001-81" in conteudo and b"Campinas" in conteudo
     assert b"/Subtype /Image" not in conteudo
+
+
+def test_catalogo_de_servicos_validacoes_e_lookup(app_db):
+    from decimal import Decimal
+
+    from app.controllers.cadastro_controller import ServicoController
+    from app.controllers.lookup_controller import LookupController
+
+    _login_admin()
+    ctrl = ServicoController()
+    s = ctrl.salvar({"nome": "Troca de oleo", "preco_padrao": "80,50", "tempo_estimado_min": "30", "ativo": True})
+    assert s.preco_padrao == Decimal("80.50") and s.tempo_estimado_min == 30
+    ctrl.salvar({"nome": "Alinhamento", "preco_padrao": "", "ativo": False})  # preco vazio = 0; inativo
+    for ruim in ({"nome": ""}, {"nome": "X", "preco_padrao": "abc"}, {"nome": "X", "preco_padrao": "-1"}, {"nome": "X", "tempo_estimado_min": "0"}, {"nome": "troca de oleo".replace("t", "T")}):
+        with pytest.raises(ValueError):
+            ctrl.salvar(ruim)
+    # edicao mantem a unicidade do proprio nome
+    ctrl.salvar({"id": s.id, "nome": "Troca de oleo", "preco_padrao": "90", "ativo": True})
+    assert LookupController().servicos() == [(s.id, "Troca de oleo", "90.00")]  # so ativos, com preco como extra
+
+
+def test_os_mecanico_responsavel_e_pdf(app_db, tmp_path, monkeypatch):
+    from app.controllers import os_controller
+    from app.controllers.cadastro_controller import VeiculoController
+    from app.controllers.os_controller import OrdemServicoController
+
+    monkeypatch.setattr(os_controller, "ROOT_DIR", tmp_path)
+    _, admin = _login_admin()
+    ClienteController().salvar({"nome": "Ana", "tipo_pessoa": "PF", "cpf_cnpj": "52998224725", "ativo": True})
+    VeiculoController().salvar({"cliente_id": 1, "placa": "ABC1D23", "marca": "VW", "modelo": "Gol"})
+    os_ctrl = OrdemServicoController()
+    ordem = os_ctrl.abrir_os({"cliente_id": 1, "veiculo_id": 1, "mecanico": " Joao "}, usuario_id=admin.id)
+    assert ordem.mecanico == "Joao"
+    os_ctrl.definir_mecanico(ordem.id, "Marcos")
+    atual = next(o for o in os_ctrl.listar() if o.id == ordem.id)
+    assert atual.mecanico == "Marcos"
+    assert b"Mecanico responsavel: Marcos" in os_ctrl.imprimir_os(ordem.id).read_bytes()
+    os_ctrl.definir_mecanico(ordem.id, "")
+    assert next(o for o in os_ctrl.listar() if o.id == ordem.id).mecanico is None
+    with pytest.raises(ValueError):
+        os_ctrl.definir_mecanico(ordem.id, "x" * 121)
+    assert any(a.acao == "MECANICO" for a in SegurancaController().listar_auditoria())

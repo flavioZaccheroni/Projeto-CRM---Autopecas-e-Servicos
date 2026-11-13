@@ -19,6 +19,7 @@ class OrdemServico(Base):
     status: Mapped[str] = mapped_column(String(30), default="ABERTA", nullable=False)
     defeito_relatado: Mapped[str | None] = mapped_column(Text)
     diagnostico: Mapped[str | None] = mapped_column(Text)
+    mecanico: Mapped[str | None] = mapped_column(String(120))
     valor_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     desconto: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     acrescimo: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)

@@ -66,6 +66,7 @@ class EspecDoc:
     sugere_preco: bool = True
     com_tipo_item: bool = False
     usa_forma: bool = True
+    com_mecanico: bool = False  # mecanico responsavel (OS)
     com_ajuste: bool = False  # desconto/acrescimo (vendas e OS)
     rotulo_valor_item: str = "Valor unitário"
     curto: str = ""  # nome curto no botao 'Nova ...'
@@ -108,7 +109,7 @@ ESPECS_DOC: dict[str, EspecDoc] = {
     "Ordem de Servico": EspecDoc(
         chave="Ordem de Servico", singular="ordem de serviço", plural="ordens de serviço", artigo="a",
         descricao="Peças e mão de obra por veículo, com finalização (baixa de estoque e financeiro) e PDF.",
-        controller=OrdemServicoController, com_ajuste=True, modulo="os", prefixo_id="os_id", metodo_criar="abrir_os",
+        controller=OrdemServicoController, com_ajuste=True, com_mecanico=True, modulo="os", prefixo_id="os_id", metodo_criar="abrir_os",
         etapas=[("ABERTA", "Aberta"), ("EM_ANDAMENTO", "Em andamento"), ("FINALIZADA", "Finalizada")],
         posicao={"ABERTA": 0, "EM_ANDAMENTO": 1, "AGUARDANDO_PECA": 1, "AGUARDANDO_APROVACAO": 1, "FINALIZADA": 2},
         terminais={"CANCELADA": "Cancelada"},
@@ -121,11 +122,12 @@ ESPECS_DOC: dict[str, EspecDoc] = {
             ("status", Coluna("Status", "emblema", 150)),
             ("valor_total", Coluna("Total", "num", 90)),
         ],
-        resumo=[("Cliente", "cliente.nome"), ("Veículo", "veiculo.placa"), ("Abertura", "data_abertura"), ("Defeito", "defeito_relatado"), ("Diagnóstico", "diagnostico")],
+        resumo=[("Cliente", "cliente.nome"), ("Veículo", "veiculo.placa"), ("Mecânico", "mecanico"), ("Abertura", "data_abertura"), ("Defeito", "defeito_relatado"), ("Diagnóstico", "diagnostico")],
         campos_novo=[
             Campo("cliente_id", "Cliente", "busca", fonte=lambda: _lookups().clientes(), dica="Buscar cliente…"),
             Campo("veiculo_id", "Veículo", "busca", fonte=lambda: [], dica="Escolha o cliente primeiro"),
             Campo("status", "Situação inicial", "lista", ["ABERTA", "EM_ANDAMENTO", "AGUARDANDO_PECA", "AGUARDANDO_APROVACAO"], somente_lista=True, padrao="ABERTA"),
+            Campo("mecanico", "Mecânico responsável"),
             Campo("defeito_relatado", "Defeito relatado"),
             Campo("diagnostico", "Diagnóstico"),
         ],
@@ -294,8 +296,18 @@ class PaginaDocumento(Pagina):
             g.addWidget(self.tipo_item, linha + 1, 0)
         self.produto = Seletor(lambda: _lookups().produtos(), "Buscar produto…")
         self.produto.escolhido.connect(self._produto_escolhido)
-        g.addWidget(rotulo("Produto" if not e.com_tipo_item else "Produto (peças)", "rotulo"), linha, 1)
+        self.rotulo_produto = rotulo("Produto" if not e.com_tipo_item else "Produto (peças)", "rotulo")
+        g.addWidget(self.rotulo_produto, linha, 1)
         g.addWidget(self.produto, linha + 1, 1)
+        self.servico = None
+        if e.com_tipo_item:
+            self.servico = Seletor(lambda: _lookups().servicos(), "Serviço do catálogo (opcional)…")
+            self.servico.escolhido.connect(self._servico_escolhido)
+            self.rotulo_servico = rotulo("Serviço do catálogo", "rotulo")
+            g.addWidget(self.rotulo_servico, linha, 1)
+            g.addWidget(self.servico, linha + 1, 1)
+            self.rotulo_servico.setVisible(False)
+            self.servico.setVisible(False)
         g.setColumnStretch(1, 1)
         linha += 2
         self.descricao = QLineEdit()
@@ -352,6 +364,33 @@ class PaginaDocumento(Pagina):
         lay.addStretch()
         self.form_ajuste.setVisible(False)
         v.addWidget(self.form_ajuste)
+        self.form_mecanico = QWidget()
+        lm = QHBoxLayout(self.form_mecanico)
+        lm.setContentsMargins(0, 0, 0, 0)
+        lm.setSpacing(10)
+        self.mecanico = QLineEdit()
+        self.mecanico.setPlaceholderText("Nome do mecânico")
+        self.mecanico.setMaxLength(120)
+        self.botao_mecanico = Botao("Salvar", "secundario")
+        self.botao_mecanico.clicked.connect(self.salvar_mecanico)
+        col = QVBoxLayout()
+        col.setSpacing(4)
+        col.addWidget(rotulo("Mecânico responsável", "rotulo"))
+        col.addWidget(self.mecanico)
+        lm.addLayout(col, 1)
+        col = QVBoxLayout()
+        col.addWidget(QLabel(""))
+        col.addWidget(self.botao_mecanico)
+        lm.addLayout(col)
+        self.form_mecanico.setVisible(False)
+        v.addWidget(self.form_mecanico)
+
+    def salvar_mecanico(self) -> None:
+        if self._id_atual is None:
+            return
+        iid, nome = int(self._id_atual), self.mecanico.text()
+        if self.executar(lambda: self.controller.definir_mecanico(iid, nome), "Mecânico atualizado."):
+            self._atualizar()
 
     def aplicar_ajuste(self) -> None:
         if self._id_atual is None:
@@ -362,9 +401,24 @@ class PaginaDocumento(Pagina):
             self._atualizar()
 
     def _tipo_mudou(self, tipo: str) -> None:
-        self.produto.setEnabled(tipo == "PECA")
-        if tipo != "PECA":
+        peca = tipo == "PECA"
+        self.produto.setVisible(peca)
+        self.rotulo_produto.setVisible(peca)
+        if self.servico is not None:
+            self.servico.setVisible(not peca)
+            self.rotulo_servico.setVisible(not peca)
+        if not peca:
             self.produto.limpar()
+        elif self.servico is not None:
+            self.servico.limpar()
+
+    def _servico_escolhido(self, opcao) -> None:
+        """Serviço do catálogo preenche descrição e preço (continuam editáveis)."""
+        if not opcao:
+            return
+        self.descricao.setText(str(opcao[1]))
+        if len(opcao) > 2 and opcao[2]:
+            self.valor.setText(str(opcao[2]))
 
     def _produto_escolhido(self, opcao) -> None:
         if not opcao:
@@ -400,6 +454,8 @@ class PaginaDocumento(Pagina):
         elif self._id_atual:
             self.fechar_detalhe()
         self.produto.recarregar()
+        if self.servico is not None:
+            self.servico.recarregar()
 
     def focar_busca(self) -> bool:
         return self.tabela.focar_busca()
@@ -463,6 +519,10 @@ class PaginaDocumento(Pagina):
         self.total.setText(texto_total)
         pode_ajustar = e.com_ajuste and status in e.editaveis and Sessao.pode(e.modulo, "editar")
         self.form_ajuste.setVisible(pode_ajustar)
+        pode_mecanico = e.com_mecanico and status in e.editaveis and Sessao.pode(e.modulo, "editar")
+        self.form_mecanico.setVisible(pode_mecanico)
+        if pode_mecanico:
+            self.mecanico.setText(getattr(doc, "mecanico", None) or "")
         if pode_ajustar:
             self.desconto.setText(format_value(desconto) if desconto else "")
             self.acrescimo.setText(format_value(acrescimo) if acrescimo else "")
@@ -537,6 +597,8 @@ class PaginaDocumento(Pagina):
 
         if self.executar(_acao, "Item adicionado."):
             self.produto.limpar()
+            if self.servico is not None:
+                self.servico.limpar()
             self.qtd.setText("1")
             self.valor.clear()
             self.descricao.clear()

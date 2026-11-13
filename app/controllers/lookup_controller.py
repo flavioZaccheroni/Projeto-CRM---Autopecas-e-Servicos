@@ -20,6 +20,9 @@ class LookupController:
     def produtos(self):
         return self._listar("produtos")
 
+    def servicos(self):
+        return self._listar("servicos")
+
     def veiculos(self, cliente_id=None):
         return self._listar("veiculos", cliente_id)
 
