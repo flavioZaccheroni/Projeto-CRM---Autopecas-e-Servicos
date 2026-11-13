@@ -324,3 +324,23 @@ def test_auditoria_configuracoes_e_backup_constroem(qapp, app_db):
     seg = PaginaSeguranca(admin)
     seg.resize(1200, 700)
     assert seg.kpi_eventos.valor.text() != "-" and not seg.grab().isNull()
+
+
+def test_pagina_sobre_na_interface(qapp, app_db):
+    from PySide6.QtWidgets import QApplication
+
+    from app.config import settings
+    from app.controllers.auth_controller import AuthController
+    from app.ui.paginas import fabricas_de_paginas
+    from app.ui.paginas.sobre import PaginaSobre
+
+    admin = AuthController().autenticar("admin", "admin123")
+    assert "Sobre" in fabricas_de_paginas(admin)
+    pagina = PaginaSobre()
+    pagina.resize(1000, 600)
+    assert settings.APP_VERSION in pagina.titulo_app.text()
+    assert pagina.grade.count() == 18  # 9 linhas x (nome + valor)
+    pagina.copiar_para_suporte()
+    copiado = QApplication.clipboard().text()
+    assert settings.APP_VERSION in copiado and "Backups:" in copiado
+    assert not pagina.grab().isNull()
