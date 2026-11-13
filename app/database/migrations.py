@@ -27,6 +27,7 @@ COLUNAS_NOVAS: dict[str, list[tuple[str, str]]] = {
         ("acrescimo", "NUMERIC(12, 2) NOT NULL DEFAULT 0"),
     ],
     "ordens_servico": [
+        ("mecanico", "VARCHAR(120)"),
         ("forma_pagamento", "VARCHAR(30)"),
         ("parcelas", "INTEGER NOT NULL DEFAULT 1"),
         ("motivo_cancelamento", "VARCHAR(255)"),

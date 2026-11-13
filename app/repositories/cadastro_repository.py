@@ -6,6 +6,7 @@ from app.models.cliente import Cliente
 from app.models.fornecedor import Fornecedor
 from app.models.marca_produto import MarcaProduto
 from app.models.produto import Produto
+from app.models.servico import Servico
 from app.models.veiculo import Veiculo
 from app.repositories.base_repository import BaseRepository
 
@@ -26,6 +27,14 @@ class VeiculoRepository(BaseRepository[Veiculo]):
 
     def buscar_por_placa(self, placa: str) -> Veiculo | None:
         return self.session.scalar(select(Veiculo).where(Veiculo.placa == placa))
+
+
+class ServicoRepository(BaseRepository[Servico]):
+    def __init__(self, session: Session) -> None:
+        super().__init__(session, Servico)
+
+    def buscar_por_nome(self, nome: str) -> Servico | None:
+        return self.session.scalar(select(Servico).where(Servico.nome == nome))
 
 
 class FornecedorRepository(BaseRepository[Fornecedor]):

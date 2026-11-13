@@ -52,6 +52,7 @@ class OrdemServicoService:
             status=dados.get("status") or "ABERTA",
             defeito_relatado=(dados.get("defeito_relatado") or "").strip(),
             diagnostico=(dados.get("diagnostico") or "").strip(),
+            mecanico=(dados.get("mecanico") or "").strip() or None,
             valor_total=Decimal("0"),
             usuario_id=dados.get("usuario_id"),
         )
@@ -94,6 +95,15 @@ class OrdemServicoService:
         self.item_repository.salvar(item)
         recalcular_total(self._session, ordem)
         return item
+
+    def definir_mecanico(self, os_id: int, mecanico) -> OrdemServico:
+        """Mecanico responsavel (texto livre; vazio remove). Vale enquanto a OS esta em aberto."""
+        ordem = self._obter_editavel(os_id)
+        nome = (mecanico or "").strip()
+        if len(nome) > 120:
+            raise ValueError("Nome do mecanico muito longo (maximo 120 caracteres).")
+        ordem.mecanico = nome or None
+        return ordem
 
     def definir_desconto(self, os_id: int, desconto, acrescimo, limite_percentual=None):
         """Aplica desconto/acrescimo (R$ ou %) em OS ainda editavel. Devolve (ordem, % de desconto)."""

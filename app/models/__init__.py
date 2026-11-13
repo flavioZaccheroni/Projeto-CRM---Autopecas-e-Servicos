@@ -17,6 +17,7 @@ from app.models.perfil import Perfil
 from app.models.permissao import Permissao
 from app.models.produto import Produto
 from app.models.sequencia import Sequencia
+from app.models.servico import Servico
 from app.models.usuario import Usuario
 from app.models.veiculo import Veiculo
 from app.models.venda import Venda
@@ -41,6 +42,7 @@ __all__ = [
     "Permissao",
     "Produto",
     "Sequencia",
+    "Servico",
     "Usuario",
     "Venda",
     "Veiculo",

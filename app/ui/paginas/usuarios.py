@@ -269,12 +269,12 @@ class PaginaUsuarios(Pagina):
 
 # ----------------------------------------------------------------------------- permissoes
 GRUPOS_MODULOS: list[tuple[str, list[str]]] = [
-    ("Cadastros", ["clientes", "veiculos", "fornecedores", "categorias", "marcas", "produtos"]),
+    ("Cadastros", ["clientes", "veiculos", "fornecedores", "categorias", "marcas", "produtos", "servicos"]),
     ("Operação", ["estoque", "compras", "vendas", "os", "financeiro", "relatorios"]),
     ("Sistema", ["seguranca", "usuarios", "permissoes", "configuracoes"]),
 ]
 NOMES_MODULOS = {
-    "clientes": "Clientes", "veiculos": "Veículos", "fornecedores": "Fornecedores", "categorias": "Categorias", "marcas": "Marcas", "produtos": "Produtos",
+    "clientes": "Clientes", "veiculos": "Veículos", "fornecedores": "Fornecedores", "categorias": "Categorias", "marcas": "Marcas", "produtos": "Produtos", "servicos": "Serviços",
     "estoque": "Estoque", "compras": "Compras", "vendas": "Vendas", "os": "Ordem de serviço", "financeiro": "Financeiro", "relatorios": "Relatórios",
     "seguranca": "Segurança e backup", "usuarios": "Usuários", "permissoes": "Permissões", "configuracoes": "Configurações",
 }

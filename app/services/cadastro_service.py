@@ -1,10 +1,11 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from app.models.categoria_produto import CategoriaProduto
 from app.models.cliente import Cliente
 from app.models.fornecedor import Fornecedor
 from app.models.marca_produto import MarcaProduto
 from app.models.produto import Produto
+from app.models.servico import Servico
 from app.models.veiculo import Veiculo
 from app.repositories.cadastro_repository import (
     CategoriaProdutoRepository,
@@ -12,6 +13,7 @@ from app.repositories.cadastro_repository import (
     FornecedorRepository,
     MarcaProdutoRepository,
     ProdutoRepository,
+    ServicoRepository,
     VeiculoRepository,
 )
 from app.utils.validators import (
@@ -150,12 +152,39 @@ class ProdutoService:
         return self.repository.salvar(produto)
 
 
+class ServicoService:
+    def __init__(self, repository: ServicoRepository) -> None:
+        self.repository = repository
+
+    def listar(self) -> list[Servico]:
+        return self.repository.listar()
+
+    def salvar(self, dados: dict) -> Servico:
+        validar_obrigatorio(dados.get("nome"), "Nome")
+        preco = str(dados.get("preco_padrao") or "0").strip().replace(",", ".")
+        try:
+            if Decimal(preco) < 0:
+                raise ValueError("Preco padrao nao pode ser negativo.")
+        except InvalidOperation:
+            raise ValueError("Preco padrao numerico invalido.") from None
+        tempo = str(dados.get("tempo_estimado_min") or "").strip()
+        if tempo and (not tempo.isdigit() or int(tempo) <= 0):
+            raise ValueError("Tempo estimado deve ser um numero inteiro de minutos.")
+        item_id = _id(dados)
+        existente = self.repository.buscar_por_nome(dados["nome"].strip())
+        if existente and existente.id != item_id:
+            raise ValueError("Servico ja cadastrado.")
+        servico = self.repository.buscar_por_id(item_id) if item_id else Servico()
+        _aplicar(servico, dados, ["nome", "descricao", "preco_padrao", "tempo_estimado_min", "ativo"])
+        return self.repository.salvar(servico)
+
+
 def _aplicar(objeto, dados: dict, campos: list[str]) -> None:
     for campo in campos:
         valor = dados.get(campo)
-        if campo.endswith("_id") or campo in {"ano", "km_atual"}:
+        if campo.endswith("_id") or campo in {"ano", "km_atual", "tempo_estimado_min"}:
             valor = int(valor) if valor not in (None, "") else None
-        elif campo in {"preco_custo", "preco_venda", "estoque_minimo"}:
+        elif campo in {"preco_custo", "preco_venda", "estoque_minimo", "preco_padrao"}:
             valor = Decimal(str(valor or 0).replace(",", "."))
         elif campo == "ativo":
             valor = bool(valor)

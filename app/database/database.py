@@ -46,6 +46,7 @@ def importar_modelos() -> None:
         permissao,
         produto,
         sequencia,
+        servico,
         usuario,
         veiculo,
         venda,

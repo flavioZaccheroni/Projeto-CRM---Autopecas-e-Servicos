@@ -353,3 +353,35 @@ def test_pagina_sobre_na_interface(qapp, app_db):
     copiado = QApplication.clipboard().text()
     assert settings.APP_VERSION in copiado and "Backups:" in copiado
     assert not pagina.grab().isNull()
+
+
+def test_os_com_servico_do_catalogo_e_mecanico_na_pagina(qapp, app_db):
+    from app.controllers.auth_controller import AuthController
+    from app.controllers.cadastro_controller import ServicoController
+    from app.ui.paginas.cadastros import ESPECS, PaginaCadastro
+    from app.ui.paginas.documentos import ESPECS_DOC, PaginaDocumento
+
+    admin = AuthController().autenticar("admin", "admin123")
+    _preparar_dados(admin)
+    ServicoController().salvar({"nome": "Troca de oleo", "preco_padrao": "80", "tempo_estimado_min": "30", "ativo": True})
+    catalogo = PaginaCadastro(ESPECS["Servicos"])
+    assert catalogo.tabela.total() == 1
+    pagina = PaginaDocumento(ESPECS_DOC["Ordem de Servico"], admin)
+    pagina.resize(1200, 760)
+    ordem = pagina.controller.abrir_os({"cliente_id": 1, "veiculo_id": 1, "mecanico": "Joao"}, usuario_id=admin.id)
+    pagina.recarregar(avisar=False)
+    pagina.tabela.selecionar(str(ordem.id))
+    pagina._mostrar(str(ordem.id))
+    assert pagina.mecanico.text() == "Joao" and not pagina.form_mecanico.isHidden()
+    pagina.mecanico.setText("Marcos")
+    pagina.salvar_mecanico()
+    assert pagina.mecanico.text() == "Marcos"
+    # tipo SERVICO troca o seletor de produto pelo do catalogo e preenche descricao e preco
+    assert pagina.servico.isHidden() and not pagina.produto.isHidden()
+    pagina.tipo_item.setCurrentText("SERVICO")
+    assert not pagina.servico.isHidden() and pagina.produto.isHidden()
+    pagina.servico.definir_id(1)
+    pagina._servico_escolhido(pagina.servico.opcao())
+    assert pagina.descricao.text() == "Troca de oleo" and pagina.valor.text() == "80.00"
+    pagina.adicionar_item()
+    assert pagina.itens.rowCount() == 1 and "80,00" in pagina.total.text()

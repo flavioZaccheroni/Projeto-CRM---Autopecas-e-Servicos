@@ -17,7 +17,7 @@ PERFIS_PADRAO: dict[str, tuple[str, dict[str, set[str]]]] = {
     "Vendedor": (
         "Atendimento, orcamentos, vendas e ordens de servico",
         {
-            "clientes": _EDICAO, "veiculos": _EDICAO, "produtos": _LEITURA, "estoque": _LEITURA,
+            "clientes": _EDICAO, "veiculos": _EDICAO, "produtos": _LEITURA, "servicos": _LEITURA, "estoque": _LEITURA,
             "vendas": _EDICAO, "os": _EDICAO, "relatorios": _LEITURA,
         },
     ),

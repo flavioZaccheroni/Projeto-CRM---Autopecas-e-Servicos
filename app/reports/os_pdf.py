@@ -25,6 +25,7 @@ def montar_linhas_os(ordem, empresa: str | list[str] = "") -> list[str]:
         f"Data de abertura: {ordem.data_abertura:%d/%m/%Y %H:%M}    Status: {ordem.status}",
         f"Cliente: {ordem.cliente.nome}    Telefone: {ordem.cliente.telefone or '-'}",
         f"Veiculo: {veiculo.placa} - {veiculo.marca or ''} {veiculo.modelo or ''}  Ano: {veiculo.ano or '-'}  KM: {veiculo.km_atual or '-'}",
+        f"Mecanico responsavel: {ordem.mecanico or '-'}",
         "",
         f"Defeito relatado: {ordem.defeito_relatado or '-'}",
         f"Diagnostico: {ordem.diagnostico or '-'}",

@@ -56,6 +56,7 @@ GRUPOS: list[tuple[str, list[ItemMenu]]] = [
             ItemMenu("Categorias", "Categorias", "camadas"),
             ItemMenu("Marcas", "Marcas", "etiqueta"),
             ItemMenu("Produtos", "Produtos", "pacote"),
+            ItemMenu("Servicos", "Serviços", "chave"),
         ],
     ),
     (

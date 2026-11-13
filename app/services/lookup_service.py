@@ -6,6 +6,7 @@ from app.models.cliente import Cliente
 from app.models.fornecedor import Fornecedor
 from app.models.marca_produto import MarcaProduto
 from app.models.produto import Produto
+from app.models.servico import Servico
 from app.models.veiculo import Veiculo
 
 
@@ -52,3 +53,8 @@ class LookupService:
     def marcas(self) -> list[tuple[int, str, str]]:
         linhas = self.session.execute(select(MarcaProduto.id, MarcaProduto.nome).where(MarcaProduto.ativo.is_(True)).order_by(MarcaProduto.nome))
         return [(i, nome, "") for i, nome in linhas]
+
+    def servicos(self) -> list[tuple[int, str, str]]:
+        """extra = preco padrao (usado para preencher o valor unitario da OS)."""
+        linhas = self.session.execute(select(Servico.id, Servico.nome, Servico.preco_padrao).where(Servico.ativo.is_(True)).order_by(Servico.nome))
+        return [(i, nome, str(preco)) for i, nome, preco in linhas]

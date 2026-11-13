@@ -6,6 +6,7 @@ from app.repositories.cadastro_repository import (
     FornecedorRepository,
     MarcaProdutoRepository,
     ProdutoRepository,
+    ServicoRepository,
     VeiculoRepository,
 )
 from app.services.cadastro_service import (
@@ -14,6 +15,7 @@ from app.services.cadastro_service import (
     FornecedorService,
     MarcaProdutoService,
     ProdutoService,
+    ServicoService,
     VeiculoService,
 )
 from app.utils.sessao import Sessao
@@ -81,3 +83,10 @@ class ProdutoController(CrudController):
 
     def __init__(self) -> None:
         super().__init__(ProdutoRepository, ProdutoService)
+
+
+class ServicoController(CrudController):
+    modulo = "servicos"
+
+    def __init__(self) -> None:
+        super().__init__(ServicoRepository, ServicoService)
