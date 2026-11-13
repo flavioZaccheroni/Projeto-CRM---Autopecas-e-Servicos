@@ -153,11 +153,15 @@ def test_ativar_exige_login(app_db, tmp_path):
 
 
 # -- sessao: modo somente consulta ----------------------------------------------------------
-def test_somente_consulta_bloqueia_escrita_mas_mantem_consulta_e_backup(app_db):
+def test_somente_consulta_bloqueia_escrita_mas_mantem_consulta_e_backup(app_db, monkeypatch, tmp_path):
     from app.controllers.auth_controller import AuthController
     from app.controllers.cadastro_controller import ClienteController
     from app.controllers.seguranca_controller import SegurancaController
     from app.controllers.venda_controller import VendaController
+    from app.services import seguranca_service
+
+    banco = tmp_path / "teste.db"
+    monkeypatch.setattr(seguranca_service.BackupService.__init__, "__defaults__", (banco, tmp_path / "bk"))
 
     AuthController().autenticar("admin", "admin123")  # administrador tem tudo, mas nao escreve em consulta
     try:
