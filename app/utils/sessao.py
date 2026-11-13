@@ -48,12 +48,18 @@ MENU_PARA_MODULO: dict[str, str | None] = {
 }
 
 
+# Em modo somente consulta so se pode ver, exceto fazer backup (os dados do cliente nunca ficam presos).
+EXCECOES_SOMENTE_CONSULTA = {("seguranca", "criar")}
+
+
 class PermissaoNegada(Exception):
     """O usuario logado nao tem permissao para a acao solicitada."""
 
 
 class _Sessao:
     def __init__(self) -> None:
+        # modo somente consulta (licenca/teste vencidos): definido pela aplicacao, nao some ao trocar de usuario
+        self.somente_consulta = False
         self.encerrar()
 
     def iniciar(self, usuario, permissoes: dict[str, set[str]], admin: bool = False) -> None:
@@ -83,6 +89,8 @@ class _Sessao:
         return self.usuario_id is not None or self.sistema
 
     def pode(self, modulo: str, acao: str) -> bool:
+        if self.somente_consulta and acao != "ver" and (modulo, acao) not in EXCECOES_SOMENTE_CONSULTA:
+            return False
         if self.sistema or self.admin:
             return True
         return acao in self.permissoes.get(modulo, set())
@@ -95,6 +103,8 @@ class _Sessao:
         if not self.autenticado:
             raise PermissaoNegada("Faca login para continuar.")
         if not self.pode(modulo, acao):
+            if self.somente_consulta and acao != "ver":
+                raise PermissaoNegada("Modo somente consulta: licença vencida ou teste encerrado. Ative uma licença em Sobre.")
             raise PermissaoNegada(f"Voce nao tem permissao para '{acao}' em {MODULOS.get(modulo, modulo)}.")
 
 

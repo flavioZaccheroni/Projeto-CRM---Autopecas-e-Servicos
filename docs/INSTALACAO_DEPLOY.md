@@ -59,6 +59,24 @@ O sistema grava o banco SQLite, os logs, os backups e os relatórios em uma **pa
 
 Para conferir os caminhos em uso, abra **Sistema → Sobre**: a tela mostra a pasta de dados, o banco, os logs e os backups, com botões para abrir as pastas e copiar as informações para o suporte.
 
+## Licença e período de teste
+
+- Sem licença, o sistema funciona por **30 dias** a partir do primeiro uso. Depois entra em **modo somente consulta**: o cliente continua vendo e exportando seus dados e fazendo backup, mas não cria nem altera registros. Os dados nunca são apagados ou bloqueados.
+- **Ativar:** *Sobre → Ativar licença…* e escolher o arquivo `.erplic` recebido. A licença é gravada na pasta de dados e vale já, sem reiniciar. A tela mostra cliente, plano e vencimento; o aviso aparece quando faltam poucos dias.
+- **Licença vinculada ao computador (opcional):** o cliente copia o *código do computador* em *Sobre* e envia ao fornecedor, que emite a licença com `--maquina`.
+- Reinstalar ou apagar arquivos não reinicia o teste: o primeiro uso fica registrado no banco e em um marcador ao lado do programa, e voltar o relógio não devolve dias.
+
+### Emitir licenças (fornecedor)
+
+```powershell
+# uma única vez: cria a chave privada fora do repositório (faça cópia de segurança!)
+.\.venv\Scripts\python.exe scripts\gerar_licenca.py chaves --saida "C:\Users\voce\ERP_licencas"
+# a cada venda
+.\.venv\Scripts\python.exe scripts\gerar_licenca.py emitir --chave "C:\Users\voce\ERP_licencas\chave_privada.key" --cliente "Auto Peças Exemplo" --plano Anual --validade 2027-11-13
+```
+
+Omita `--validade` para licença sem vencimento. A chave **pública** fica embutida em `app/services/licenca_service.py`; a **privada** nunca vai ao Git nem ao cliente. Perder a privada obriga a trocar a pública e reemitir as licenças. Limite honesto: em um programa local nada impede um invasor determinado; o objetivo é evitar o uso casual sem pagar.
+
 ## Backup
 
 - **Automático** (ligado por padrão): cria uma cópia `auto_*` ao abrir o sistema (no máximo uma por dia) e ao fechá-lo (se houve alterações, no máximo uma por hora). Mantém as mais recentes (padrão 15; backups manuais nunca são apagados).

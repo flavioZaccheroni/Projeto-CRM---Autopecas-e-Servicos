@@ -19,3 +19,4 @@ releases/
 *.spec
 !ERP_Autopecas.spec
 demo/
+licencas_emitidas/

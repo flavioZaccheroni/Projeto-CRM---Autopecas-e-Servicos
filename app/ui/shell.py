@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.config.settings import APP_VERSION, AVISO_DEMO, AVISO_DEMO_CURTO
+from app.controllers.licenca_controller import LicencaController
 from app.ui import icones
 from app.ui.componentes import Avisos, Botao, EstadoVazio, rotulo
 from app.ui.tema import ao_mudar_tema, tema
@@ -161,12 +162,22 @@ class BarraLateral(QFrame):
                 self._botoes[item.chave] = botao
                 corpo.addWidget(botao)
         corpo.addStretch()
-        self.versao = rotulo(f"Versão {APP_VERSION}\n{AVISO_DEMO_CURTO}", "grupo")
-        self.versao.setToolTip(AVISO_DEMO)
+        self.versao = rotulo("", "grupo")
         self.versao.setContentsMargins(8, 0, 0, 4)
         corpo.addWidget(self.versao)
+        self.atualizar_licenca()
         ao_mudar_tema(self, self._logo)
         self._logo()
+
+    def atualizar_licenca(self) -> None:
+        """Mostra a versão e a situação da licença/teste no rodapé da barra lateral."""
+        try:
+            situacao = LicencaController().situacao()
+            self.versao.setText(f"Versão {APP_VERSION}\n{situacao.titulo}")
+            self.versao.setToolTip(situacao.detalhe)
+        except Exception:  # noqa: BLE001 - o rodapé nunca impede abrir o sistema
+            self.versao.setText(f"Versão {APP_VERSION}\n{AVISO_DEMO_CURTO}")
+            self.versao.setToolTip(AVISO_DEMO)
 
     def _logo(self) -> None:
         self.logo.setStyleSheet(f"background: {tema.t['lateral_ativo']}; border-radius: 9px;")
@@ -381,7 +392,7 @@ class JanelaPrincipal(QMainWindow):
         super().__init__()
         self.usuario = usuario
         self.fabricas = fabricas or {}
-        self.setWindowTitle("ERP CRM Autopeças & Serviços — Versão de demonstração")
+        self.setWindowTitle("ERP CRM Autopeças & Serviços")
         self.resize(1360, 820)
         self.setMinimumSize(1060, 660)
         self._paginas: dict[str, QWidget] = {}

@@ -74,7 +74,7 @@ def test_login_e_janela_principal(qapp, app_db):
 
     janela_login = JanelaLogin()
     assert janela_login.windowTitle()
-    assert "30 dias" in janela_login.aviso_demo.text()
+    assert "30 dias" in janela_login.aviso_demo.text() and "teste" in janela_login.aviso_demo.text().lower()
     usuario = AuthController().autenticar("admin", "admin123")
     assert usuario is not None
     for modo in ("escuro", "claro"):
@@ -352,7 +352,41 @@ def test_pagina_sobre_na_interface(qapp, app_db):
     pagina.copiar_para_suporte()
     copiado = QApplication.clipboard().text()
     assert settings.APP_VERSION in copiado and "Backups:" in copiado
+    assert "Licença:" in copiado and pagina.info["codigo_maquina"] in copiado
     assert not pagina.grab().isNull()
+
+
+def test_sobre_ativa_licenca_pela_interface(qapp, app_db, tmp_path, monkeypatch):
+    from datetime import date, timedelta
+
+    from PySide6.QtWidgets import QApplication
+
+    from app.controllers import licenca_controller as lc
+    from app.controllers.auth_controller import AuthController
+    from app.services import licenca_service as ls
+    from app.ui.paginas.sobre import PaginaSobre
+    from app.utils import ed25519
+    from app.utils.sessao import Sessao
+
+    segredo = bytes(range(1, 33))
+    monkeypatch.setattr(ls, "CHAVE_PUBLICA_HEX", ed25519.chave_publica(segredo).hex())
+    monkeypatch.setattr(lc, "ARQUIVO_LICENCA", tmp_path / "licenca.erplic")
+    monkeypatch.setattr(lc, "MARCADOR", tmp_path / ".erp_inicio")
+    AuthController().autenticar("admin", "admin123")
+    try:
+        pagina = PaginaSobre()
+        assert "Teste" in pagina.licenca_titulo.text()
+        assert not pagina.ativar_arquivo(str(tmp_path / "nao_existe.erplic"))
+        arquivo = tmp_path / "cliente.erplic"
+        arquivo.write_text(
+            ls.montar_licenca(segredo, "Auto Pecas Exemplo", "Anual", date.today() + timedelta(days=365), date.today()), encoding="utf-8"
+        )
+        assert pagina.ativar_arquivo(str(arquivo))
+        assert "Licenciado" in pagina.licenca_titulo.text() and not Sessao.somente_consulta
+        pagina.copiar_codigo()
+        assert QApplication.clipboard().text() == pagina.info["codigo_maquina"]
+    finally:
+        Sessao.somente_consulta = False
 
 
 def test_os_com_servico_do_catalogo_e_mecanico_na_pagina(qapp, app_db):

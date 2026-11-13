@@ -87,4 +87,6 @@ def texto_para_suporte(info: dict) -> str:
         f"Backups: {info['pasta_backups']}",
         f"Último backup: {info['ultimo_backup']} · automático {info['backup_automatico']}",
     ]
+    if info.get("licenca_titulo"):
+        linhas.append(f"Licença: {info['licenca_titulo']} · computador {info.get('codigo_maquina', '-')}")
     return "\n".join(linhas)
