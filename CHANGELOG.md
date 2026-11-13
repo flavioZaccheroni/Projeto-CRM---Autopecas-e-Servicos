@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Não lançado]
+
+### Adicionado
+- **Instalador Windows** (`ERP_Autopecas_Setup_<versão>.exe`, Inno Setup): instala sem administrador, cria atalhos e desinstalador, atualiza por cima da versão anterior e **preserva os dados** (banco, backups e logs ficam em `%LOCALAPPDATA%\ERP_Autopecas`, fora da pasta do programa). Não inclui a base de demonstração; a primeira abertura cria uma base nova. O desinstalador mantém os dados do cliente.
+- O CI gera o instalador e testa o ciclo completo (instalar, abrir, atualizar por cima, desinstalar) verificando que os dados não são perdidos.
+- `scripts/build_installer.py` para gerar o instalador localmente (exige o Inno Setup 6).
+
 ## [3.2.0] — 2026-11-13
 
 ### Adicionado
