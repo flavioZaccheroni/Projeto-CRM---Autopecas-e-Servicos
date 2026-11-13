@@ -236,3 +236,22 @@ def test_pdf_de_orcamento_e_de_venda_finalizada(app_db, tmp_path, monkeypatch):
     conteudo = comprovante.read_bytes()
     assert b"COMPROVANTE DE VENDA V000001" in conteudo and b"Recebemos de Ana" in conteudo
     assert any(a.acao == "IMPRIMIR" for a in SegurancaController().listar_auditoria())
+
+
+def test_pdf_usa_dados_da_empresa_e_logo(app_db, tmp_path, monkeypatch):
+    from app.controllers import venda_controller
+    from app.reports import venda_pdf
+    from app.utils import logo as logo_mod
+
+    monkeypatch.setattr(venda_controller, "ROOT_DIR", tmp_path)
+    monkeypatch.setattr(logo_mod, "DATA_DIR", tmp_path / "dados")
+    monkeypatch.setattr(venda_pdf, "caminho_logo", lambda: logo_mod.caminho_logo(tmp_path / "dados"))
+    _, admin = _login_admin()
+    seg = SegurancaController()
+    seg.salvar_configuracao("empresa.nome", "Auto Pecas Teste")
+    seg.salvar_configuracao("empresa.cnpj", "11.222.333/0001-81")
+    seg.salvar_configuracao("empresa.cidade", "Campinas")
+    venda, v = _venda_de_100(admin)
+    conteudo = venda.imprimir_venda(v.id).read_bytes()
+    assert b"Auto Pecas Teste" in conteudo and b"CNPJ: 11.222.333/0001-81" in conteudo and b"Campinas" in conteudo
+    assert b"/Subtype /Image" not in conteudo

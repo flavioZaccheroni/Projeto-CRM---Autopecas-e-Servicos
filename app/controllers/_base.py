@@ -33,3 +33,13 @@ def limite_desconto(session) -> Decimal | None:
         return max(Decimal("0"), Decimal(str(texto).replace(",", "."))) if texto else PADRAO_DESCONTO_MAX
     except ArithmeticError:
         return PADRAO_DESCONTO_MAX
+
+
+def cabecalho_empresa(session) -> list[str]:
+    """Linhas do cabecalho dos PDFs a partir dos dados da empresa (Configuracoes)."""
+    config = ConfiguracaoService(ConfiguracaoRepository(session))
+    nome, cnpj, telefone, cidade, endereco = (config.obter(f"empresa.{c}", "") for c in ("nome", "cnpj", "telefone", "cidade", "endereco"))
+    linhas = [nome or "ERP CRM Autopecas & Servicos"]
+    contato = "   ".join(x for x in (f"CNPJ: {cnpj}" if cnpj else "", f"Tel: {telefone}" if telefone else "") if x)
+    local = " - ".join(x for x in (endereco, cidade) if x)
+    return [*linhas, *(x for x in (contato, local) if x)]

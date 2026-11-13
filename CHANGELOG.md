@@ -10,6 +10,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Migração Alembic `0002` adiciona as colunas `desconto` e `acrescimo` (bancos existentes são atualizados sem perda de dados).
 
 - **PDF de orçamento e de venda:** botão PDF no detalhe da venda gera o orçamento (enquanto não finalizada) ou o comprovante de venda com a linha de recebimento, com desconto/acréscimo e forma de pagamento. Registrado na auditoria (`IMPRIMIR`).
+- **Logo e dados da empresa nos PDFs:** em **Configurações → Dados da empresa** é possível escolher o logo (PNG, JPG ou BMP; é reduzido e guardado na pasta de dados). Ele aparece no canto do PDF da OS, do orçamento e da venda, junto com nome, CNPJ, telefone e endereço da empresa. Sem logo, o PDF continua como antes.
 
 ### Corrigido
 - O total de vendas e OS agora é sempre recalculado a partir dos itens, também ao adicionar um item.

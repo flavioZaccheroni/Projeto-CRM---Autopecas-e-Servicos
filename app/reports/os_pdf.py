@@ -2,17 +2,24 @@ from pathlib import Path
 
 from app.reports.exporters import export_pdf_linhas
 from app.utils.datas import agora
+from app.utils.logo import caminho_logo
 
 
 def _moeda(valor) -> str:
     return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def montar_linhas_os(ordem, empresa: str = "") -> list[str]:
+def _cabecalho(empresa: str | list[str]) -> list[str]:
+    if isinstance(empresa, str):
+        return [empresa or "ERP CRM Autopecas & Servicos"]
+    return list(empresa) or ["ERP CRM Autopecas & Servicos"]
+
+
+def montar_linhas_os(ordem, empresa: str | list[str] = "") -> list[str]:
     """Texto da ordem de servico pronto para impressao (cabecalho, cliente, itens, totais, assinaturas)."""
     veiculo = ordem.veiculo
     linhas = [
-        empresa or "ERP CRM Autopecas & Servicos",
+        *_cabecalho(empresa),
         f"ORDEM DE SERVICO {ordem.numero}",
         "",
         f"Data de abertura: {ordem.data_abertura:%d/%m/%Y %H:%M}    Status: {ordem.status}",
@@ -57,6 +64,6 @@ def montar_linhas_os(ordem, empresa: str = "") -> list[str]:
     return linhas
 
 
-def gerar_pdf_os(ordem, pasta: Path, empresa: str = "") -> Path:
+def gerar_pdf_os(ordem, pasta: Path, empresa: str | list[str] = "") -> Path:
     destino = pasta / f"os_{ordem.numero}_{agora():%Y%m%d_%H%M%S}.pdf"
-    return export_pdf_linhas(destino, montar_linhas_os(ordem, empresa))
+    return export_pdf_linhas(destino, montar_linhas_os(ordem, empresa), logo=caminho_logo())

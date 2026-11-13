@@ -2,6 +2,7 @@ from app.controllers._base import auditar, usuario_atual
 from app.database.database import SessionLocal
 from app.repositories.seguranca_repository import AuditoriaRepository, ConfiguracaoRepository
 from app.services.seguranca_service import AuditoriaService, BackupService, ConfiguracaoService, ler_parametros_backup
+from app.utils.logo import caminho_logo, remover_logo, salvar_logo
 from app.utils.sessao import requer_permissao
 
 
@@ -23,6 +24,28 @@ class SegurancaController:
             auditar(session, "configuracao", "SALVAR", f"{chave}={valor}", configuracao.id)
             session.commit()
             return configuracao
+
+    @requer_permissao("configuracoes", "ver")
+    def logo_empresa(self):
+        """Caminho do logo da empresa, ou None."""
+        return caminho_logo()
+
+    @requer_permissao("configuracoes", "editar")
+    def definir_logo(self, origem: str):
+        with SessionLocal() as session:
+            destino = salvar_logo(origem)
+            auditar(session, "configuracao", "LOGO", "logo da empresa atualizado")
+            session.commit()
+            return destino
+
+    @requer_permissao("configuracoes", "editar")
+    def remover_logo(self) -> bool:
+        with SessionLocal() as session:
+            removido = remover_logo()
+            if removido:
+                auditar(session, "configuracao", "LOGO", "logo da empresa removido")
+                session.commit()
+            return removido
 
     @requer_permissao("seguranca", "criar")
     def criar_backup(self, usuario_id: int | None = None):

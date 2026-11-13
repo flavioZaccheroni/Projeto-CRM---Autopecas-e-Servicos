@@ -21,39 +21,93 @@ def export_pdf(path: Path, title: str, headers: list[str], rows: list[list[objec
     return export_pdf_linhas(path, lines)
 
 
-def export_pdf_linhas(path: Path, lines: list[str]) -> Path:
-    """Gera um PDF simples com uma linha de texto por item de `lines` (42 linhas por pagina)."""
+def export_pdf_linhas(path: Path, lines: list[str], logo: Path | None = None) -> Path:
+    """Gera um PDF simples com uma linha de texto por item de `lines` (42 linhas por pagina).
+
+    `logo` (JPEG) e desenhado no canto superior direito da primeira pagina; se ilegivel, e ignorado.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     title = lines[0] if lines else "Documento"
     pages = [lines[index : index + 42] for index in range(0, len(lines), 42)] or [[title]]
+    imagem = _ler_jpeg(logo)
 
-    objects: list[str] = []
-    objects.append("<< /Type /Catalog /Pages 2 0 R >>")
+    objects: list[bytes] = []
+    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
     page_refs = " ".join(f"{3 + index * 2} 0 R" for index in range(len(pages)))
-    objects.append(f"<< /Type /Pages /Kids [{page_refs}] /Count {len(pages)} >>")
+    objects.append(f"<< /Type /Pages /Kids [{page_refs}] /Count {len(pages)} >>".encode("latin-1"))
+    id_imagem = 3 + len(pages) * 2
     for page_index, page_lines in enumerate(pages):
         page_obj = 3 + page_index * 2
         content_obj = page_obj + 1
+        com_logo = imagem is not None and page_index == 0
+        xobject = f"/XObject << /Im1 {id_imagem} 0 R >> " if com_logo else ""
         objects.append(
-            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
-            f"/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> "
-            f"/Contents {content_obj} 0 R >>"
+            (
+                f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+                f"/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> {xobject}>> "
+                f"/Contents {content_obj} 0 R >>"
+            ).encode("latin-1")
         )
         stream = _content_stream(page_lines)
-        objects.append(f"<< /Length {len(stream.encode('latin-1', errors='replace'))} >>\nstream\n{stream}\nendstream")
+        if com_logo:
+            stream = _desenho_logo(imagem[0], imagem[1]) + "\n" + stream
+        dados = stream.encode("latin-1", errors="replace")
+        objects.append(b"<< /Length " + str(len(dados)).encode() + b" >>\nstream\n" + dados + b"\nendstream")
+    if imagem is not None:
+        largura, altura, bruto = imagem
+        objects.append(
+            f"<< /Type /XObject /Subtype /Image /Width {largura} /Height {altura} /ColorSpace /DeviceRGB "
+            f"/BitsPerComponent 8 /Filter /DCTDecode /Length {len(bruto)} >>\nstream\n".encode("latin-1")
+            + bruto
+            + b"\nendstream"
+        )
 
     offsets: list[int] = []
-    pdf = "%PDF-1.4\n"
+    pdf = b"%PDF-1.4\n"
     for index, obj in enumerate(objects, start=1):
-        offsets.append(len(pdf.encode("latin-1", errors="replace")))
-        pdf += f"{index} 0 obj\n{obj}\nendobj\n"
-    xref_offset = len(pdf.encode("latin-1", errors="replace"))
-    pdf += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n"
-    for offset in offsets:
-        pdf += f"{offset:010d} 00000 n \n"
-    pdf += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF"
-    path.write_bytes(pdf.encode("latin-1", errors="replace"))
+        offsets.append(len(pdf))
+        pdf += f"{index} 0 obj\n".encode("latin-1") + obj + b"\nendobj\n"
+    xref_offset = len(pdf)
+    xref = f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n" + "".join(f"{offset:010d} 00000 n \n" for offset in offsets)
+    pdf += xref.encode("latin-1")
+    pdf += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF".encode("latin-1")
+    path.write_bytes(pdf)
     return path
+
+
+LOGO_MAX_PT = (150, 55)  # largura x altura maximas do logo na pagina (pontos)
+
+
+def _ler_jpeg(caminho: Path | None):
+    """(largura, altura, bytes) de um JPEG RGB valido, ou None."""
+    if not caminho:
+        return None
+    try:
+        bruto = Path(caminho).read_bytes()
+    except OSError:
+        return None
+    if not bruto.startswith(b"\xff\xd8"):
+        return None
+    posicao = 2
+    while posicao + 9 < len(bruto):
+        if bruto[posicao] != 0xFF:
+            posicao += 1
+            continue
+        marcador = bruto[posicao + 1]
+        if marcador in (0xC0, 0xC1, 0xC2):
+            if bruto[posicao + 9] != 3:  # so RGB (3 componentes)
+                return None
+            altura = int.from_bytes(bruto[posicao + 5 : posicao + 7], "big")
+            largura = int.from_bytes(bruto[posicao + 7 : posicao + 9], "big")
+            return (largura, altura, bruto) if largura and altura else None
+        posicao += 2 + int.from_bytes(bruto[posicao + 2 : posicao + 4], "big")
+    return None
+
+
+def _desenho_logo(largura: int, altura: int) -> str:
+    fator = min(LOGO_MAX_PT[0] / largura, LOGO_MAX_PT[1] / altura)
+    w, h = largura * fator, altura * fator
+    return f"q {w:.1f} 0 0 {h:.1f} {545 - w:.1f} {827 - h:.1f} cm /Im1 Do Q"
 
 
 def _worksheet_xml(title: str, headers: list[str], rows: list[list[object]]) -> str:
