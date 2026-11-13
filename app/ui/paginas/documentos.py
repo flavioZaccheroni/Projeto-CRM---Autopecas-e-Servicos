@@ -102,6 +102,7 @@ ESPECS_DOC: dict[str, EspecDoc] = {
             AcaoDoc("finalizar", "Finalizar venda", "primario", "ok", {"ORCAMENTO", "APROVADO"}, "editar", "finalizar_venda", pede="finalizacao", sucesso="Venda finalizada: estoque baixado e financeiro gerado."),
             AcaoDoc("cancelar", "Cancelar", "perigo", "lixeira", {"ORCAMENTO", "APROVADO", "FINALIZADA"}, "excluir", "cancelar_venda", pede="motivo", sucesso="Venda cancelada.",
                     pergunta="Estoque e financeiro serão estornados."),
+            AcaoDoc("pdf", "PDF", "secundario", "documento", set(), "ver", "imprimir_venda"),
         ],
     ),
     "Ordem de Servico": EspecDoc(

@@ -217,3 +217,22 @@ def test_vendedor_respeita_limite_de_desconto_e_admin_ajusta_o_limite(app_db):
     venda.definir_desconto(v.id, "15%", "")  # no limite
     with pytest.raises(ValueError, match="limite"):
         venda.definir_desconto(v.id, "16", "")
+
+
+def test_pdf_de_orcamento_e_de_venda_finalizada(app_db, tmp_path, monkeypatch):
+    from app.controllers import venda_controller
+
+    monkeypatch.setattr(venda_controller, "ROOT_DIR", tmp_path)
+    _, admin = _login_admin()
+    venda, v = _venda_de_100(admin)
+    venda.definir_desconto(v.id, "10", "")
+    orcamento = venda.imprimir_venda(v.id)
+    assert orcamento.name.startswith("orcamento_") and orcamento.read_bytes().startswith(b"%PDF")
+    assert b"ORCAMENTO V000001" in orcamento.read_bytes() and b"Desconto" in orcamento.read_bytes()
+    venda.aprovar_orcamento(v.id)
+    venda.finalizar_venda(v.id, usuario_id=admin.id, data_vencimento=date.today(), parcelas=1, forma_pagamento="PIX")
+    comprovante = venda.imprimir_venda(v.id)
+    assert comprovante.name.startswith("venda_")
+    conteudo = comprovante.read_bytes()
+    assert b"COMPROVANTE DE VENDA V000001" in conteudo and b"Recebemos de Ana" in conteudo
+    assert any(a.acao == "IMPRIMIR" for a in SegurancaController().listar_auditoria())
