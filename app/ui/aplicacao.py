@@ -8,6 +8,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from app.controllers.auth_controller import AuthController
+from app.controllers.licenca_controller import LicencaController
 from app.controllers.seguranca_controller import SegurancaController
 from app.ui.login import JanelaLogin
 from app.ui.paginas import fabricas_de_paginas
@@ -45,6 +46,16 @@ class Aplicacao:
             texto = "Nenhum backup foi feito ainda." if dias is None else f"Faz {dias} dias sem backup."
             self.principal.avisos.mostrar(f"{texto} O backup automático está desligado (Configurações).", "perigo")
 
+    def _verificar_licenca(self) -> None:
+        """Aplica o modo somente consulta (teste/licenca vencidos) e avisa o usuario. Nunca impede abrir o sistema."""
+        try:
+            situacao = LicencaController().aplicar_restricao()
+        except Exception:  # noqa: BLE001
+            logger.exception("Falha ao verificar a licenca")
+            return
+        if self.principal and situacao.precisa_aviso:
+            self.principal.avisos.mostrar(f"{situacao.detalhe} Veja Sistema → Sobre para ativar a licença.", "perigo" if situacao.somente_consulta else "aviso", 9000)
+
     def mostrar_login(self) -> None:
         self.login = JanelaLogin()
         self.login.autenticado.connect(self._abrir_principal)
@@ -55,6 +66,7 @@ class Aplicacao:
         self.principal.sair_solicitado.connect(self._sair)
         self.principal.show()
         self._rotina_backup("abrir")
+        self._verificar_licenca()
         if self.login:
             self.login.close()
 

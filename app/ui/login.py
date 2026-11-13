@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from app.config.settings import AVISO_DEMO
 from app.controllers.auth_controller import AuthController
+from app.controllers.licenca_controller import LicencaController
 from app.ui import icones
 from app.ui.componentes import Botao, rotulo
 from app.ui.tema import ao_mudar_tema, tema
@@ -188,13 +189,20 @@ class DialogoTrocaSenha(QDialog):
         self.accept()
 
 
+def _texto_licenca_atual() -> str:
+    try:
+        return LicencaController().situacao().detalhe
+    except Exception:  # noqa: BLE001 - o login deve abrir mesmo sem banco/licenca legivel
+        return AVISO_DEMO
+
+
 class JanelaLogin(QWidget):
     autenticado = Signal(object)
 
     def __init__(self, controller: AuthController | None = None) -> None:
         super().__init__()
         self.controller = controller or AuthController()
-        self.setWindowTitle("ERP CRM Autopeças & Serviços — Entrar (demonstração)")
+        self.setWindowTitle("ERP CRM Autopeças & Serviços — Entrar")
         self.setObjectName("Raiz")
         self.resize(960, 600)
         self.setMinimumSize(860, 560)
@@ -240,7 +248,7 @@ class JanelaLogin(QWidget):
         lado_corpo.addWidget(self.formulario)
         lado_corpo.addStretch(2)
         lado_corpo.addWidget(rotulo("Atalho: Enter para entrar", "mudo"), 0, Qt.AlignmentFlag.AlignHCenter)
-        self.aviso_demo = rotulo(AVISO_DEMO, "mudo", quebra=True)
+        self.aviso_demo = rotulo(_texto_licenca_atual(), "mudo", quebra=True)
         self.aviso_demo.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         lado_corpo.addWidget(self.aviso_demo)
         linha.addWidget(lado, 4)

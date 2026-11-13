@@ -8,6 +8,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - **Instalador Windows** (`ERP_Autopecas_Setup_<versão>.exe`, Inno Setup): instala sem administrador, cria atalhos e desinstalador, atualiza por cima da versão anterior e **preserva os dados** (banco, backups e logs ficam em `%LOCALAPPDATA%\ERP_Autopecas`, fora da pasta do programa). Não inclui a base de demonstração; a primeira abertura cria uma base nova. O desinstalador mantém os dados do cliente.
 - O CI gera o instalador e testa o ciclo completo (instalar, abrir, atualizar por cima, desinstalar) verificando que os dados não são perdidos.
 - `scripts/build_installer.py` para gerar o instalador localmente (exige o Inno Setup 6).
+- **Licença e período de teste:** sem licença, o sistema funciona por 30 dias a partir do primeiro uso; depois entra em **modo somente consulta** (ver, exportar e fazer backup; nada é apagado nem bloqueado). A licença é um arquivo `.erplic` assinado (Ed25519) ativado em **Sobre → Ativar licença**; pode ter validade ou ser perpétua e, opcionalmente, vinculada a um computador. Aviso quando faltam poucos dias; situação visível na barra lateral e no login.
+- `scripts/gerar_licenca.py` (uso do fornecedor): cria o par de chaves e emite licenças. A chave privada fica fora do repositório.
 
 ## [3.2.0] — 2026-11-13
 
