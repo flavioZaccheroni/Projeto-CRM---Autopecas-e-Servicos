@@ -297,6 +297,17 @@ CAMPOS_EMPRESA = [
 ]
 
 
+CAMPOS_BACKUP = [
+    ("backup.auto", "Backup automático", "Cria uma cópia ao abrir (1x por dia) e ao fechar o sistema, se houve alterações"),
+    ("backup.pasta_extra", "Copiar também para a pasta", "Opcional: outro disco, pen drive ou pasta sincronizada (OneDrive, Google Drive)"),
+    ("backup.manter", "Backups automáticos a manter", "Os mais antigos são apagados; backups manuais nunca são apagados"),
+    ("backup.alerta_dias", "Avisar após (dias sem backup)", "Aviso ao abrir o sistema se o backup automático estiver desligado"),
+]
+
+
+PADROES_BACKUP = {"backup.pasta_extra": "", "backup.manter": "15", "backup.alerta_dias": "7"}
+
+
 class PaginaConfiguracoes(Pagina):
     subtitulo = "Dados da empresa e parâmetros do sistema."
 
@@ -328,7 +339,32 @@ class PaginaConfiguracoes(Pagina):
         rodape.addWidget(self.botao_salvar)
         v.addLayout(rodape)
         empresa.setMaximumWidth(460)
-        linha.addWidget(empresa)
+
+        backup = Card()
+        b = QVBoxLayout(backup)
+        b.setContentsMargins(20, 18, 20, 18)
+        b.setSpacing(12)
+        b.addWidget(rotulo("Backup automático", "secao"))
+        b.addWidget(rotulo("Protege seus dados contra falhas do computador. Guarde uma cópia em outro disco ou na nuvem.", "mudo", quebra=True))
+        self.formulario_backup = Formulario(
+            [
+                Campo("backup.auto", "Backup automático", tipo="lista", opcoes=["Sim", "Não"], somente_lista=True, padrao="Sim", dica=CAMPOS_BACKUP[0][2]),
+                Campo("backup.pasta_extra", "Copiar também para a pasta", dica=CAMPOS_BACKUP[1][2]),
+                Campo("backup.manter", "Backups automáticos a manter", dica=CAMPOS_BACKUP[2][2], padrao="15", metade=True),
+                Campo("backup.alerta_dias", "Avisar após (dias)", dica=CAMPOS_BACKUP[3][2], padrao="7", metade=True),
+            ]
+        )
+        self.formulario_backup.alterado.connect(self._marcar_sujo)
+        b.addWidget(self.formulario_backup)
+        coluna = QVBoxLayout()
+        coluna.setSpacing(16)
+        coluna.addWidget(empresa)
+        coluna.addWidget(backup)
+        coluna.addStretch()
+        caixa = QWidget()
+        caixa.setLayout(coluna)
+        caixa.setMaximumWidth(460)
+        linha.addWidget(caixa)
 
         todos = Card()
         t = QVBoxLayout(todos)
@@ -351,6 +387,7 @@ class PaginaConfiguracoes(Pagina):
         pode = Sessao.pode("configuracoes", "editar")
         self.botao_salvar.setEnabled(False)
         self.formulario.somente_leitura(not pode)
+        self.formulario_backup.somente_leitura(not pode)
         self.botao_novo.setEnabled(pode)
         QShortcut_ctrl_s(self, self.salvar_empresa)
         self.recarregar(avisar=False)
@@ -367,8 +404,18 @@ class PaginaConfiguracoes(Pagina):
         self.valores = {i.chave: (i.valor or "") for i in itens}
         self.tabela.definir_dados([(i.chave, [i.chave, i.valor or ""]) for i in itens])
         self.formulario.preencher(self.valores)
+        self.formulario_backup.preencher(self._valores_backup_para_tela())
         self._sujo = False
         self._atualizar()
+
+    def _valores_backup_para_tela(self) -> dict[str, str]:
+        v = dict(self.valores)
+        for chave, padrao in PADROES_BACKUP.items():
+            if not v.get(chave, "").strip():
+                v[chave] = padrao
+        auto = v.get("backup.auto", "").strip().lower()
+        v["backup.auto"] = "Não" if auto in ("nao", "não", "n", "0", "false", "desligado") else "Sim"
+        return v
 
     def _marcar_sujo(self) -> None:
         self._sujo = True
@@ -383,6 +430,15 @@ class PaginaConfiguracoes(Pagina):
             return
         novos = self.formulario.valores()
         alterados = {c: str(v).strip() for c, v in novos.items() if str(v).strip() != self.valores.get(c, "")}
+        for chave, valor in self.formulario_backup.valores().items():
+            texto = str(valor).strip()
+            if chave == "backup.auto":
+                texto = "nao" if texto.lower().startswith("n") else "sim"
+                if texto == self.valores.get(chave, "sim"):
+                    continue
+            elif texto == (self.valores.get(chave, "").strip() or PADROES_BACKUP.get(chave, "")):
+                continue
+            alterados[chave] = texto
 
         def _acao() -> None:
             for chave, valor in alterados.items():

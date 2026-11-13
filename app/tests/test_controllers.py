@@ -140,3 +140,24 @@ def test_os_financeiro_e_backup_via_controllers(app_db, tmp_path, monkeypatch):
     seguranca = SegurancaController()
     seguranca.salvar_configuracao("empresa", "Oficina X", usuario_id=admin.id)
     assert any(c.chave == "empresa" for c in seguranca.listar_configuracoes())
+
+
+def test_backup_automatico_pelo_controller(app_db, monkeypatch, tmp_path):
+    from app.config import settings  # noqa: F401
+    from app.services import seguranca_service
+
+    monkeypatch.setattr(seguranca_service, "BACKUPS_DIR", tmp_path / "bk")
+    banco = tmp_path / "teste.db"
+    monkeypatch.setattr(seguranca_service.BackupService.__init__, "__defaults__", (banco, tmp_path / "bk"))
+    _, admin = _login_admin()
+    controller = SegurancaController()
+
+    situacao = controller.situacao_backup()
+    assert situacao["auto"] is True and situacao["dias"] is None
+
+    primeiro = controller.executar_backup_automatico("abrir")
+    assert primeiro["criado"] is True and primeiro["arquivo"].name.startswith("auto_")
+    assert controller.situacao_backup()["dias"] == 0
+
+    controller.salvar_configuracao("backup.auto", "nao", usuario_id=admin.id)
+    assert controller.executar_backup_automatico("sair") == {"criado": False, "arquivo": None, "aviso": None}
