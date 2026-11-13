@@ -32,6 +32,45 @@ jobs:
         run: |
           if (-not (Test-Path dist\ERP_Autopecas\data\erp_autopecas.db)) { throw "Base de demonstracao ausente no pacote" }
           Get-Item dist\ERP_Autopecas\data\erp_autopecas.db | Select-Object Name, Length
+      - name: Instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ISCC -ErrorAction SilentlyContinue) -and -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+          python scripts/build_installer.py --version ci-${{ github.run_number }}
+          if ($LASTEXITCODE -ne 0) { throw "Falha ao gerar o instalador" }
+      - name: Testar o instalador (instalar, abrir, atualizar por cima, desinstalar)
+        shell: pwsh
+        run: |
+          $setup = (Get-Item releases\ERP_Autopecas_Setup_ci-*.exe).FullName
+          $alvo = "$env:RUNNER_TEMP\erp_instalado"
+          $env:LOCALAPPDATA = "$env:RUNNER_TEMP\erp_localappdata"   # simula o perfil do usuario
+          New-Item -ItemType Directory -Force $env:LOCALAPPDATA | Out-Null
+          # 1) instala em silencio
+          $p = Start-Process $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$alvo","/LOG=$env:RUNNER_TEMP\setup.log" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content "$env:RUNNER_TEMP\setup.log" -Tail 40; throw "Instalacao falhou ($($p.ExitCode))" }
+          if (-not (Test-Path "$alvo\ERP_Autopecas.exe")) { throw "ERP_Autopecas.exe nao foi instalado" }
+          if (Test-Path "$alvo\data") { throw "A pasta data (demo) nao deve ir no instalador: ligaria o modo portatil" }
+          # 2) abre o app instalado: os dados devem ir para LOCALAPPDATA\ERP_Autopecas, fora da pasta do programa
+          $p = Start-Process "$alvo\ERP_Autopecas.exe" -ArgumentList "--selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Autoteste do app instalado falhou ($($p.ExitCode))" }
+          $dados = "$env:LOCALAPPDATA\ERP_Autopecas\data"
+          if (-not (Test-Path "$dados\selftest.txt")) { throw "Dados nao foram gravados em $dados" }
+          if (Test-Path "$alvo\data") { throw "O app instalado gravou dados na pasta do programa" }
+          Set-Content "$dados\marcador_cliente.txt" "dados do cliente"
+          # 3) atualiza por cima (mesmo instalador): programa trocado, dados mantidos
+          $p = Start-Process $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$alvo" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Atualizacao por cima falhou ($($p.ExitCode))" }
+          if (-not (Test-Path "$dados\marcador_cliente.txt")) { throw "A atualizacao apagou dados do cliente" }
+          # 4) desinstala: programa removido, dados mantidos
+          $desinstalador = Get-ChildItem "$alvo\unins*.exe" | Select-Object -First 1
+          $p = Start-Process $desinstalador.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Desinstalacao falhou ($($p.ExitCode))" }
+          Start-Sleep -Seconds 3
+          if (Test-Path "$alvo\ERP_Autopecas.exe") { throw "O programa nao foi removido" }
+          if (-not (Test-Path "$dados\marcador_cliente.txt")) { throw "A desinstalacao apagou dados do cliente" }
+          "Instalador: instalar, abrir, atualizar e desinstalar OK; dados preservados" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
       - name: Tamanho do pacote
         shell: pwsh
         run: |
@@ -41,3 +80,7 @@ jobs:
         with:
           name: ERP_Autopecas_windows
           path: releases/ERP_Autopecas_ci-*_windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ERP_Autopecas_Setup
+          path: releases/ERP_Autopecas_Setup_ci-*.exe

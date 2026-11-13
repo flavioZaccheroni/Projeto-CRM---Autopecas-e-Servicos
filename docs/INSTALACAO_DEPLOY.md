@@ -4,7 +4,8 @@ O sistema é distribuído de dois jeitos:
 
 | Formato | Arquivo | Para quem |
 | --- | --- | --- |
-| **Executável Windows** (recomendado) | `ERP_Autopecas_<versão>_windows.zip` | Quem só quer usar: não precisa instalar Python |
+| **Instalador Windows** (recomendado) | `ERP_Autopecas_Setup_<versão>.exe` | Cliente final: atalhos, desinstalador e atualização por cima, sem Python |
+| **Executável portátil** | `ERP_Autopecas_<versão>_windows.zip` | Testar sem instalar (inclui a base de demonstração) ou rodar de um pen drive |
 | **Código-fonte** | `erp_autopecas_<versão>.zip` ou o repositório | Desenvolvimento e quem não pode rodar o executável |
 
 ## Requisitos
@@ -13,7 +14,22 @@ O sistema é distribuído de dois jeitos:
 - Executável: nenhum software adicional.
 - Código-fonte: Python 3.12+ (as dependências, incluindo o PySide6 da interface, vêm do `requirements.txt`).
 
-## Executável (Windows)
+## Instalador (Windows)
+
+1. Execute `ERP_Autopecas_Setup_<versão>.exe`. Não exige administrador: instala só para o seu usuário (em `%LOCALAPPDATA%\Programs\ERP_Autopecas`). Para instalar para todos, escolha a opção na primeira tela e confirme a permissão do Windows.
+2. Siga o assistente (marque o atalho na área de trabalho se quiser) e abra o sistema.
+3. A primeira abertura cria uma **base nova e vazia** (login `admin` / `admin123`, com troca obrigatória de senha). O instalador não traz a base de demonstração.
+
+Os dados (banco, backups, logs) ficam em `%LOCALAPPDATA%\ERP_Autopecas`, **fora** da pasta do programa.
+
+- **Atualizar:** rode o instalador da versão nova por cima. Ele fecha o sistema, troca só os arquivos do programa e **não mexe nos dados**; o banco é migrado na primeira abertura. Faça um backup antes, por precaução.
+- **Desinstalar:** *Configurações do Windows → Aplicativos* (ou o atalho "Desinstalar" no menu Iniciar). Remove o programa e **mantém os dados**; apague `%LOCALAPPDATA%\ERP_Autopecas` manualmente só se não precisar mais deles.
+- **Vindo do modo portátil (zip):** com o sistema fechado, copie a pasta `data` (e, se quiser, `backups`) da pasta antiga para `%LOCALAPPDATA%\ERP_Autopecas`, depois instale e abra.
+- **Instalação silenciosa** (suporte/TI): `ERP_Autopecas_Setup_<versão>.exe /VERYSILENT /NORESTART` (opcionalmente `/DIR="C:\Pasta"`).
+
+> O instalador também **ainda não é assinado digitalmente**: o Windows pode mostrar o aviso do SmartScreen ("Windows protegeu o computador"; use *Mais informações → Executar assim mesmo*).
+
+## Executável portátil (Windows)
 
 1. Extraia o `.zip` em uma pasta de sua escolha (por exemplo `C:\ERP_Autopecas`). Não execute de dentro do zip.
 2. Abra `ERP_Autopecas.exe`.
@@ -78,14 +94,17 @@ O pacote de código-fonte (`erp_autopecas_<versão>.zip`) também traz `instalar
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
 .\.venv\Scripts\python.exe scripts\build_release.py --version 3.2.0
+# instalador (precisa do Inno Setup 6, https://jrsoftware.org/isinfo.php; usa o dist\ gerado acima):
+.\.venv\Scripts\python.exe scripts\build_installer.py --version 3.2.0
 ```
 
 Gera em `releases/`:
 
 - `erp_autopecas_<versão>.zip`: pacote de código-fonte;
-- `ERP_Autopecas_<versão>_windows.zip`: executável (PyInstaller, em pasta) com a base de demonstração em `data/`. Use `--skip-exe` para gerar só o pacote de código-fonte.
+- `ERP_Autopecas_<versão>_windows.zip`: executável portátil (PyInstaller, em pasta) com a base de demonstração em `data/`. Use `--skip-exe` para gerar só o pacote de código-fonte;
+- `ERP_Autopecas_Setup_<versão>.exe`: instalador (Inno Setup, script em `installer/ERP_Autopecas.iss`), **sem** a pasta `data/` de demonstração para o sistema usar a pasta de dados do usuário.
 
-O executável também é gerado e validado (autoteste de banco e interface) no GitHub Actions, pelo workflow **Build do executavel** (execução manual ou ao publicar uma tag `v*`). Antes de publicar uma versão, atualize `APP_VERSION` em `app/config/settings.py` e o `CHANGELOG.md`.
+O executável e o instalador também são gerados e validados no GitHub Actions, pelo workflow **Build do executavel** (execução manual ou ao publicar uma tag `v*`): autoteste do `.exe` (banco e interface) e teste do instalador (instalar, abrir, atualizar por cima e desinstalar, conferindo que os dados são preservados). Os artefatos são `ERP_Autopecas_windows` (zip portátil) e `ERP_Autopecas_Setup` (instalador). Antes de publicar uma versão, atualize `APP_VERSION` em `app/config/settings.py` e o `CHANGELOG.md`.
 
 ## Solução de problemas
 
