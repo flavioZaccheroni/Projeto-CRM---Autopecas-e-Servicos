@@ -1,6 +1,9 @@
+from app.config.settings import ROOT_DIR
 from app.controllers._base import auditar, limite_desconto, usuario_atual
 from app.database.database import SessionLocal
+from app.reports.venda_pdf import gerar_pdf_venda
 from app.repositories.estoque_repository import EstoqueRepository, MovimentacaoEstoqueRepository
+from app.repositories.seguranca_repository import ConfiguracaoRepository
 from app.repositories.venda_repository import (
     FinanceiroLancamentoRepository,
     ItemVendaRepository,
@@ -130,3 +133,16 @@ class VendaController:
             auditar(session, "venda", "CANCELAR", f"{venda.numero}: {motivo}", venda.id)
             session.commit()
             return venda
+
+    @requer_permissao("vendas", "ver")
+    def imprimir_venda(self, venda_id: int):
+        """Gera o PDF do orcamento ou da venda (comprovante) em exports/vendas/ e retorna o caminho."""
+        with SessionLocal() as session:
+            venda = VendaRepository(session).buscar_por_id(int(venda_id))
+            if venda is None:
+                raise ValueError("Venda nao encontrada.")
+            empresa = ConfiguracaoRepository(session).buscar_por_chave("empresa.nome")
+            arquivo = gerar_pdf_venda(venda, ROOT_DIR / "exports" / "vendas", empresa.valor if empresa and empresa.valor else "")
+            auditar(session, "venda", "IMPRIMIR", venda.numero, venda.id)
+            session.commit()
+            return arquivo

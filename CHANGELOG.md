@@ -9,6 +9,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - **Limite de desconto por perfil:** quem não é administrador respeita o parâmetro `desconto.max_percentual` (padrão 10%, em Configurações); administradores não têm limite. Cada ajuste é registrado na auditoria (`DESCONTO`).
 - Migração Alembic `0002` adiciona as colunas `desconto` e `acrescimo` (bancos existentes são atualizados sem perda de dados).
 
+- **PDF de orçamento e de venda:** botão PDF no detalhe da venda gera o orçamento (enquanto não finalizada) ou o comprovante de venda com a linha de recebimento, com desconto/acréscimo e forma de pagamento. Registrado na auditoria (`IMPRIMIR`).
+
 ### Corrigido
 - O total de vendas e OS agora é sempre recalculado a partir dos itens, também ao adicionar um item.
 
