@@ -1,10 +1,9 @@
 from app.config.settings import ROOT_DIR
-from app.controllers._base import auditar, limite_desconto, usuario_atual
+from app.controllers._base import auditar, cabecalho_empresa, limite_desconto, usuario_atual
 from app.database.database import SessionLocal
 from app.reports.os_pdf import gerar_pdf_os
 from app.repositories.estoque_repository import EstoqueRepository, MovimentacaoEstoqueRepository
 from app.repositories.os_repository import ItemOSRepository, OrdemServicoRepository
-from app.repositories.seguranca_repository import ConfiguracaoRepository
 from app.repositories.venda_repository import FinanceiroLancamentoRepository
 from app.services.estoque_service import EstoqueService
 from app.services.os_service import OrdemServicoService
@@ -124,8 +123,7 @@ class OrdemServicoController:
             ordem = OrdemServicoRepository(session).buscar_por_id(int(os_id))
             if ordem is None:
                 raise ValueError("Ordem de servico nao encontrada.")
-            empresa = ConfiguracaoRepository(session).buscar_por_chave("empresa.nome")
-            arquivo = gerar_pdf_os(ordem, ROOT_DIR / "exports" / "os", empresa.valor if empresa and empresa.valor else "")
+            arquivo = gerar_pdf_os(ordem, ROOT_DIR / "exports" / "os", cabecalho_empresa(session))
             auditar(session, "os", "IMPRIMIR", ordem.numero, ordem.id)
             session.commit()
             return arquivo

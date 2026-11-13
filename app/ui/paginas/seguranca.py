@@ -6,8 +6,8 @@ from datetime import date, datetime
 from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QUrl
-from PySide6.QtGui import QColor, QDesktopServices, QPainter
-from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtGui import QColor, QDesktopServices, QPainter, QPixmap
+from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QScrollArea, QTabWidget, QVBoxLayout, QWidget
 
 from app.controllers.seguranca_controller import SegurancaController
 from app.controllers.usuario_controller import UsuarioController
@@ -289,7 +289,7 @@ class PaginaSeguranca(Pagina):
 
 # ---------------------------------------------------------------------------- configuracoes
 CAMPOS_EMPRESA = [
-    ("empresa.nome", "Nome da empresa", "Aparece no cabeçalho da impressão da OS"),
+    ("empresa.nome", "Nome da empresa", "Aparece no cabeçalho dos PDFs (OS, orçamento e venda)"),
     ("empresa.cnpj", "CNPJ", ""),
     ("empresa.telefone", "Telefone", ""),
     ("empresa.cidade", "Cidade", ""),
@@ -325,7 +325,8 @@ class PaginaConfiguracoes(Pagina):
         v.setContentsMargins(20, 18, 20, 18)
         v.setSpacing(12)
         v.addWidget(rotulo("Dados da empresa", "secao"))
-        v.addWidget(rotulo("Usados nos documentos impressos (como o PDF da ordem de serviço).", "mudo", quebra=True))
+        v.addWidget(rotulo("Usados no cabeçalho dos PDFs (ordem de serviço, orçamento e venda). O logo é reduzido e guardado na pasta de dados.", "mudo", quebra=True))
+        self._montar_logo(v)
         self.formulario = Formulario([Campo(chave, nome, dica=dica, metade=chave in ("empresa.cnpj", "empresa.telefone")) for chave, nome, dica in CAMPOS_EMPRESA])
         self.formulario.alterado.connect(self._marcar_sujo)
         v.addWidget(self.formulario)
@@ -407,6 +408,48 @@ class PaginaConfiguracoes(Pagina):
         self.formulario_backup.preencher(self._valores_backup_para_tela())
         self._sujo = False
         self._atualizar()
+
+    # ---- logo da empresa (cabecalho dos PDFs)
+    def _montar_logo(self, v: QVBoxLayout) -> None:
+        linha = QHBoxLayout()
+        linha.setSpacing(10)
+        self.previa_logo = QLabel("Sem logo")
+        self.previa_logo.setFixedSize(150, 55)
+        self.previa_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.botao_logo = Botao("Escolher logo…", "secundario", "mais")
+        self.botao_logo.clicked.connect(self.escolher_logo)
+        self.botao_remover_logo = Botao("Remover", "secundario", "lixeira")
+        self.botao_remover_logo.clicked.connect(self.remover_logo)
+        linha.addWidget(self.previa_logo)
+        linha.addWidget(self.botao_logo)
+        linha.addWidget(self.botao_remover_logo)
+        linha.addStretch()
+        v.addLayout(linha)
+        self._atualizar_logo()
+
+    def _atualizar_logo(self) -> None:
+        try:
+            arquivo = self.controller.logo_empresa()
+        except Exception:  # noqa: BLE001 - sem permissao de ver: apenas nao mostra
+            arquivo = None
+        pode = Sessao.pode("configuracoes", "editar")
+        self.botao_logo.setEnabled(pode)
+        self.botao_remover_logo.setEnabled(pode and arquivo is not None)
+        pixmap = QPixmap(str(arquivo)) if arquivo else QPixmap()
+        if pixmap.isNull():
+            self.previa_logo.setPixmap(QPixmap())
+            self.previa_logo.setText("Sem logo")
+        else:
+            self.previa_logo.setPixmap(pixmap.scaled(150, 55, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+
+    def escolher_logo(self) -> None:
+        arquivo, _ = QFileDialog.getOpenFileName(self, "Escolher logo da empresa", "", "Imagens (*.png *.jpg *.jpeg *.bmp)")
+        if arquivo and self.executar(lambda: self.controller.definir_logo(arquivo), "Logo atualizado: aparece nos PDFs."):
+            self._atualizar_logo()
+
+    def remover_logo(self) -> None:
+        if self.executar(lambda: self.controller.remover_logo(), "Logo removido."):
+            self._atualizar_logo()
 
     def _valores_backup_para_tela(self) -> dict[str, str]:
         v = dict(self.valores)

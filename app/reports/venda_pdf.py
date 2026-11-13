@@ -3,8 +3,9 @@
 from pathlib import Path
 
 from app.reports.exporters import export_pdf_linhas
-from app.reports.os_pdf import _moeda
+from app.reports.os_pdf import _cabecalho, _moeda
 from app.utils.datas import agora
+from app.utils.logo import caminho_logo
 
 NOMES_STATUS = {
     "ORCAMENTO": "Orcamento",
@@ -24,10 +25,10 @@ def titulo_documento(venda) -> str:
     return f"ORCAMENTO {venda.numero}"
 
 
-def montar_linhas_venda(venda, empresa: str = "") -> list[str]:
+def montar_linhas_venda(venda, empresa: str | list[str] = "") -> list[str]:
     cliente = venda.cliente
     linhas = [
-        empresa or "ERP CRM Autopecas & Servicos",
+        *_cabecalho(empresa),
         titulo_documento(venda),
         "",
         f"Data: {venda.data_venda:%d/%m/%Y %H:%M}    Situacao: {NOMES_STATUS.get(venda.status, venda.status)}",
@@ -69,7 +70,7 @@ def montar_linhas_venda(venda, empresa: str = "") -> list[str]:
     return linhas
 
 
-def gerar_pdf_venda(venda, pasta: Path, empresa: str = "") -> Path:
+def gerar_pdf_venda(venda, pasta: Path, empresa: str | list[str] = "") -> Path:
     prefixo = "venda" if venda.status == "FINALIZADA" else "orcamento"
     destino = pasta / f"{prefixo}_{venda.numero}_{agora():%Y%m%d_%H%M%S}.pdf"
-    return export_pdf_linhas(destino, montar_linhas_venda(venda, empresa))
+    return export_pdf_linhas(destino, montar_linhas_venda(venda, empresa), logo=caminho_logo())

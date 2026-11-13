@@ -1,9 +1,8 @@
 from app.config.settings import ROOT_DIR
-from app.controllers._base import auditar, limite_desconto, usuario_atual
+from app.controllers._base import auditar, cabecalho_empresa, limite_desconto, usuario_atual
 from app.database.database import SessionLocal
 from app.reports.venda_pdf import gerar_pdf_venda
 from app.repositories.estoque_repository import EstoqueRepository, MovimentacaoEstoqueRepository
-from app.repositories.seguranca_repository import ConfiguracaoRepository
 from app.repositories.venda_repository import (
     FinanceiroLancamentoRepository,
     ItemVendaRepository,
@@ -141,8 +140,7 @@ class VendaController:
             venda = VendaRepository(session).buscar_por_id(int(venda_id))
             if venda is None:
                 raise ValueError("Venda nao encontrada.")
-            empresa = ConfiguracaoRepository(session).buscar_por_chave("empresa.nome")
-            arquivo = gerar_pdf_venda(venda, ROOT_DIR / "exports" / "vendas", empresa.valor if empresa and empresa.valor else "")
+            arquivo = gerar_pdf_venda(venda, ROOT_DIR / "exports" / "vendas", cabecalho_empresa(session))
             auditar(session, "venda", "IMPRIMIR", venda.numero, venda.id)
             session.commit()
             return arquivo
