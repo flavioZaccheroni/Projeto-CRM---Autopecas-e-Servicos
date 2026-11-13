@@ -77,7 +77,7 @@ O pacote de código-fonte (`erp_autopecas_<versão>.zip`) também traz `instalar
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
-.\.venv\Scripts\python.exe scripts\build_release.py --version 3.1.0
+.\.venv\Scripts\python.exe scripts\build_release.py --version 3.2.0
 ```
 
 Gera em `releases/`:
