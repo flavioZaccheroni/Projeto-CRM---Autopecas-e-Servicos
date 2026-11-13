@@ -20,6 +20,8 @@ class OrdemServico(Base):
     defeito_relatado: Mapped[str | None] = mapped_column(Text)
     diagnostico: Mapped[str | None] = mapped_column(Text)
     valor_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    desconto: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    acrescimo: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"))
     forma_pagamento: Mapped[str | None] = mapped_column(String(30))
     parcelas: Mapped[int] = mapped_column(Integer, default=1, nullable=False)

@@ -1,8 +1,8 @@
 """Migrador minimo e idempotente para bancos criados antes das Sprints 1 e 2.
 
 `create_all` cria tabelas novas, mas nao altera tabelas existentes. Este modulo adiciona as
-colunas novas quando elas ainda nao existem, sem apagar nenhum dado. Roda dentro da
-migracao base do Alembic (`alembic/versions/0001_baseline.py`); mudancas futuras viram revisoes proprias.
+colunas novas quando elas ainda nao existem, sem apagar nenhum dado. Roda dentro das
+revisoes do Alembic (0001 baseline e 0002 desconto/acrescimo); mudancas futuras viram revisoes proprias.
 """
 
 import logging
@@ -23,11 +23,15 @@ COLUNAS_NOVAS: dict[str, list[tuple[str, str]]] = {
         ("forma_pagamento", "VARCHAR(30)"),
         ("parcelas", "INTEGER NOT NULL DEFAULT 1"),
         ("motivo_cancelamento", "VARCHAR(255)"),
+        ("desconto", "NUMERIC(12, 2) NOT NULL DEFAULT 0"),
+        ("acrescimo", "NUMERIC(12, 2) NOT NULL DEFAULT 0"),
     ],
     "ordens_servico": [
         ("forma_pagamento", "VARCHAR(30)"),
         ("parcelas", "INTEGER NOT NULL DEFAULT 1"),
         ("motivo_cancelamento", "VARCHAR(255)"),
+        ("desconto", "NUMERIC(12, 2) NOT NULL DEFAULT 0"),
+        ("acrescimo", "NUMERIC(12, 2) NOT NULL DEFAULT 0"),
     ],
     "compras": [
         ("motivo_cancelamento", "VARCHAR(255)"),

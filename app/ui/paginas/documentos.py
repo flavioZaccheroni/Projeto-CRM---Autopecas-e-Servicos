@@ -66,6 +66,7 @@ class EspecDoc:
     sugere_preco: bool = True
     com_tipo_item: bool = False
     usa_forma: bool = True
+    com_ajuste: bool = False  # desconto/acrescimo (vendas e OS)
     rotulo_valor_item: str = "Valor unitário"
     curto: str = ""  # nome curto no botao 'Nova ...'
     extras: dict = field(default_factory=dict)
@@ -79,7 +80,7 @@ ESPECS_DOC: dict[str, EspecDoc] = {
     "Vendas": EspecDoc(
         chave="Vendas", singular="venda", plural="vendas", artigo="a",
         descricao="Orçamento → aprovação → venda, com baixa de estoque, parcelamento e contas a receber.",
-        controller=VendaController, modulo="vendas", prefixo_id="venda_id", metodo_criar="criar_venda",
+        controller=VendaController, com_ajuste=True, modulo="vendas", prefixo_id="venda_id", metodo_criar="criar_venda",
         etapas=[("ORCAMENTO", "Orçamento"), ("APROVADO", "Aprovado"), ("FINALIZADA", "Finalizada")],
         posicao={"ORCAMENTO": 0, "APROVADO": 1, "FINALIZADA": 2},
         terminais={"RECUSADO": "Recusado", "CANCELADA": "Cancelada"},
@@ -106,7 +107,7 @@ ESPECS_DOC: dict[str, EspecDoc] = {
     "Ordem de Servico": EspecDoc(
         chave="Ordem de Servico", singular="ordem de serviço", plural="ordens de serviço", artigo="a",
         descricao="Peças e mão de obra por veículo, com finalização (baixa de estoque e financeiro) e PDF.",
-        controller=OrdemServicoController, modulo="os", prefixo_id="os_id", metodo_criar="abrir_os",
+        controller=OrdemServicoController, com_ajuste=True, modulo="os", prefixo_id="os_id", metodo_criar="abrir_os",
         etapas=[("ABERTA", "Aberta"), ("EM_ANDAMENTO", "Em andamento"), ("FINALIZADA", "Finalizada")],
         posicao={"ABERTA": 0, "EM_ANDAMENTO": 1, "AGUARDANDO_PECA": 1, "AGUARDANDO_APROVACAO": 1, "FINALIZADA": 2},
         terminais={"CANCELADA": "Cancelada"},
@@ -238,6 +239,7 @@ class PaginaDocumento(Pagina):
         self.itens.editado.connect(self._editar_item)
         self.itens.remover_pedido.connect(self._remover_item)
         v.addWidget(self.itens, 1)
+        self._montar_form_ajuste(v)
         self.total = rotulo("", "kpi")
         self.total.setStyleSheet("font-size: 20px;")
         self.total.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -321,6 +323,42 @@ class PaginaDocumento(Pagina):
         linha_qv.addLayout(col)
         g.addLayout(linha_qv, linha, 0, 1, 2)
         v.addWidget(self.form_item)
+
+    def _montar_form_ajuste(self, v: QVBoxLayout) -> None:
+        """Linha 'Desconto / Acréscimo' (R$ ou %), só para documentos com ajuste."""
+        self.form_ajuste = QWidget()
+        lay = QHBoxLayout(self.form_ajuste)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(10)
+        self.desconto = QLineEdit()
+        self.desconto.setPlaceholderText("R$ ou %")
+        self.desconto.setMaximumWidth(110)
+        self.acrescimo = QLineEdit()
+        self.acrescimo.setPlaceholderText("R$ ou %")
+        self.acrescimo.setMaximumWidth(110)
+        self.botao_ajuste = Botao("Aplicar", "secundario")
+        self.botao_ajuste.clicked.connect(self.aplicar_ajuste)
+        for rot, campo in (("Desconto", self.desconto), ("Acréscimo", self.acrescimo)):
+            col = QVBoxLayout()
+            col.setSpacing(4)
+            col.addWidget(rotulo(rot, "rotulo"))
+            col.addWidget(campo)
+            lay.addLayout(col)
+        col = QVBoxLayout()
+        col.addWidget(QLabel(""))
+        col.addWidget(self.botao_ajuste)
+        lay.addLayout(col)
+        lay.addStretch()
+        self.form_ajuste.setVisible(False)
+        v.addWidget(self.form_ajuste)
+
+    def aplicar_ajuste(self) -> None:
+        if self._id_atual is None:
+            return
+        iid = int(self._id_atual)
+        desconto, acrescimo = self.desconto.text(), self.acrescimo.text()
+        if self.executar(lambda: self.controller.definir_desconto(iid, desconto, acrescimo), "Desconto/acréscimo aplicado."):
+            self._atualizar()
 
     def _tipo_mudou(self, tipo: str) -> None:
         self.produto.setEnabled(tipo == "PECA")
@@ -410,7 +448,23 @@ class PaginaDocumento(Pagina):
         editavel = status in e.editaveis and Sessao.pode(e.modulo, "editar")
         pode_remover = status in e.editaveis and Sessao.pode(e.modulo, "excluir")
         self.itens.definir(itens, editavel, pode_remover)
-        self.total.setText("Total  R$ " + format_value(doc.valor_total))
+        desconto = getattr(doc, "desconto", 0) or 0
+        acrescimo = getattr(doc, "acrescimo", 0) or 0
+        texto_total = "Total  R$ " + format_value(doc.valor_total)
+        if desconto or acrescimo:
+            subtotal = doc.valor_total + desconto - acrescimo
+            partes = [f"Subtotal R$ {format_value(subtotal)}"]
+            if desconto:
+                partes.append(f"Desconto − R$ {format_value(desconto)}")
+            if acrescimo:
+                partes.append(f"Acréscimo + R$ {format_value(acrescimo)}")
+            texto_total = "  ·  ".join(partes) + "\n" + texto_total
+        self.total.setText(texto_total)
+        pode_ajustar = e.com_ajuste and status in e.editaveis and Sessao.pode(e.modulo, "editar")
+        self.form_ajuste.setVisible(pode_ajustar)
+        if pode_ajustar:
+            self.desconto.setText(format_value(desconto) if desconto else "")
+            self.acrescimo.setText(format_value(acrescimo) if acrescimo else "")
         pode_incluir = status in e.editaveis and Sessao.pode(e.modulo, "criar")
         self.form_item.setVisible(pode_incluir)
         self.aviso_estado.setText("" if status in e.editaveis else "Este documento não aceita mais alteração nos itens.")

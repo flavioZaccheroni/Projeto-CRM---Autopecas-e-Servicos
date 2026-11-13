@@ -1,5 +1,5 @@
 from app.config.settings import ROOT_DIR
-from app.controllers._base import auditar, usuario_atual
+from app.controllers._base import auditar, limite_desconto, usuario_atual
 from app.database.database import SessionLocal
 from app.reports.os_pdf import gerar_pdf_os
 from app.repositories.estoque_repository import EstoqueRepository, MovimentacaoEstoqueRepository
@@ -67,6 +67,23 @@ class OrdemServicoController:
             auditar(session, "os", "EDITAR_ITEM", f"item={item_id}", item.os_id)
             session.commit()
             return item
+
+    @requer_permissao("os", "editar")
+    def definir_desconto(self, os_id: int, desconto="", acrescimo=""):
+        """Desconto/acrescimo em R$ ou %, respeitando o limite do perfil (administrador sem limite)."""
+        with SessionLocal() as session:
+            ordem, percentual = _service(session).definir_desconto(
+                os_id, desconto, acrescimo, limite_desconto(session)
+            )
+            auditar(
+                session,
+                "os",
+                "DESCONTO",
+                f"{ordem.numero} desconto={ordem.desconto} ({percentual:.1f}%) acrescimo={ordem.acrescimo} total={ordem.valor_total}",
+                ordem.id,
+            )
+            session.commit()
+            return ordem
 
     @requer_permissao("os", "excluir")
     def remover_item(self, item_id: int) -> None:

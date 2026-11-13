@@ -1,7 +1,10 @@
 """Utilitarios compartilhados pelos controllers: auditoria de escrita."""
 
-from app.repositories.seguranca_repository import AuditoriaRepository
-from app.services.seguranca_service import AuditoriaService
+from decimal import Decimal
+
+from app.repositories.seguranca_repository import AuditoriaRepository, ConfiguracaoRepository
+from app.services._itens import CHAVE_DESCONTO_MAX, PADRAO_DESCONTO_MAX
+from app.services.seguranca_service import AuditoriaService, ConfiguracaoService
 from app.utils.sessao import Sessao
 
 
@@ -19,3 +22,14 @@ def auditar(session, entidade: str, acao: str, detalhes: str | None = None, enti
 def usuario_atual(usuario_id: int | None = None) -> int | None:
     """Usuario responsavel: o logado na sessao, ou o informado quando nao ha sessao."""
     return Sessao.usuario_id if Sessao.usuario_id is not None else usuario_id
+
+
+def limite_desconto(session) -> Decimal | None:
+    """Limite (%) de desconto do usuario logado: administrador sem limite; demais, parametro (padrao 10%)."""
+    if Sessao.admin or Sessao.sistema:
+        return None
+    texto = ConfiguracaoService(ConfiguracaoRepository(session)).obter(CHAVE_DESCONTO_MAX)
+    try:
+        return max(Decimal("0"), Decimal(str(texto).replace(",", "."))) if texto else PADRAO_DESCONTO_MAX
+    except ArithmeticError:
+        return PADRAO_DESCONTO_MAX
