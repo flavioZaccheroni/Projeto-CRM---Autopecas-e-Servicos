@@ -33,8 +33,15 @@ def montar_linhas_os(ordem, empresa: str = "") -> list[str]:
         )
     linhas += [
         "-" * 90,
-        f"TOTAL: {_moeda(ordem.valor_total)}",
     ]
+    if ordem.desconto or ordem.acrescimo:
+        subtotal = ordem.valor_total + ordem.desconto - ordem.acrescimo
+        linhas.append(f"Subtotal: {_moeda(subtotal)}")
+        if ordem.desconto:
+            linhas.append(f"Desconto: -{_moeda(ordem.desconto)}")
+        if ordem.acrescimo:
+            linhas.append(f"Acrescimo: +{_moeda(ordem.acrescimo)}")
+    linhas.append(f"TOTAL: {_moeda(ordem.valor_total)}")
     if ordem.forma_pagamento:
         linhas.append(f"Pagamento: {ordem.forma_pagamento} em {ordem.parcelas}x")
     if ordem.status == "CANCELADA" and ordem.motivo_cancelamento:

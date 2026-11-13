@@ -161,3 +161,59 @@ def test_backup_automatico_pelo_controller(app_db, monkeypatch, tmp_path):
 
     controller.salvar_configuracao("backup.auto", "nao", usuario_id=admin.id)
     assert controller.executar_backup_automatico("sair") == {"criado": False, "arquivo": None, "aviso": None}
+
+
+def _venda_de_100(admin):
+    ClienteController().salvar({"nome": "Ana", "tipo_pessoa": "PF", "cpf_cnpj": "52998224725", "ativo": True})
+    ProdutoController().salvar(
+        {"codigo": "P1", "descricao": "Filtro", "unidade": "UN", "preco_custo": "10", "preco_venda": "100", "estoque_minimo": "0", "ativo": True}
+    )
+    EstoqueController().movimentar({"produto_id": 1, "tipo": "ENTRADA", "quantidade": "5"}, usuario_id=admin.id)
+    venda = VendaController()
+    v = venda.criar_venda({"cliente_id": 1}, usuario_id=admin.id)
+    venda.adicionar_item({"venda_id": v.id, "produto_id": 1, "quantidade": "1", "valor_unitario": "100"})
+    return venda, v
+
+
+def test_desconto_e_acrescimo_refletem_no_total_e_no_financeiro(app_db):
+    from decimal import Decimal
+
+    _, admin = _login_admin()
+    venda, v = _venda_de_100(admin)
+    venda.definir_desconto(v.id, "30%", "R$ 5,50")  # administrador: sem limite
+    atual = next(x for x in venda.listar() if x.id == v.id)
+    assert (atual.desconto, atual.acrescimo, atual.valor_total) == (Decimal("30.00"), Decimal("5.50"), Decimal("75.50"))
+    venda.adicionar_item({"venda_id": v.id, "produto_id": 1, "quantidade": "1", "valor_unitario": "100"})
+    assert next(x for x in venda.listar() if x.id == v.id).valor_total == Decimal("175.50")
+    venda.aprovar_orcamento(v.id)
+    venda.finalizar_venda(v.id, usuario_id=admin.id, data_vencimento=date.today(), parcelas=1, forma_pagamento="PIX")
+    lancamento = [x for x in FinanceiroController().listar_lancamentos() if x.tipo == "RECEBER"][0]
+    assert lancamento.valor == Decimal("175.50")
+    with pytest.raises(ValueError):  # finalizada nao aceita mais ajuste
+        venda.definir_desconto(v.id, "1", "")
+    assert any(a.acao == "DESCONTO" for a in SegurancaController().listar_auditoria())
+
+
+def test_desconto_invalido_e_limitado_ao_subtotal(app_db):
+    _, admin = _login_admin()
+    venda, v = _venda_de_100(admin)
+    for texto in ("150", "-5", "abc", "120%"):
+        with pytest.raises(ValueError):
+            venda.definir_desconto(v.id, texto, "")
+    venda.definir_desconto(v.id, "100", "")
+    assert next(x for x in venda.listar() if x.id == v.id).valor_total == 0  # nunca negativo
+    venda.definir_desconto(v.id, "", "")  # vazio zera
+    assert next(x for x in venda.listar() if x.id == v.id).valor_total == 100
+
+
+def test_vendedor_respeita_limite_de_desconto_e_admin_ajusta_o_limite(app_db):
+    _, admin = _login_admin()
+    venda, v = _venda_de_100(admin)
+    perfis = {p.nome: p.id for p in UsuarioController().listar_perfis()}
+    UsuarioController().criar("Vera", "vera@x.com", "vera", "Senha1234", perfis["Vendedor"])
+    SegurancaController().salvar_configuracao("desconto.max_percentual", "15")
+    AuthController().encerrar_sessao()
+    assert AuthController().autenticar("vera", "Senha1234") is not None
+    venda.definir_desconto(v.id, "15%", "")  # no limite
+    with pytest.raises(ValueError, match="limite"):
+        venda.definir_desconto(v.id, "16", "")

@@ -9,6 +9,7 @@ from app.repositories.venda_repository import (
 )
 from app.services._itens import (
     carregar_produtos,
+    definir_ajuste,
     normalizar_forma_pagamento,
     recalcular_total,
     validar_quantidade_valor,
@@ -69,7 +70,7 @@ class VendaService:
             valor_total=quantidade_decimal * valor_unitario_decimal,
         )
         self.item_repository.salvar(item)
-        venda.valor_total = Decimal(venda.valor_total or 0) + item.valor_total
+        recalcular_total(self._session, venda)
         return item
 
     def atualizar_item(self, item_id: int, quantidade, valor_unitario) -> ItemVenda:
@@ -82,6 +83,11 @@ class VendaService:
         self.item_repository.salvar(item)
         recalcular_total(self._session, venda)
         return item
+
+    def definir_desconto(self, venda_id: int, desconto, acrescimo, limite_percentual=None):
+        """Aplica desconto/acrescimo (R$ ou %) em orcamento/venda ainda editavel. Devolve (venda, % de desconto)."""
+        venda = self._obter_editavel(venda_id)
+        return venda, definir_ajuste(self._session, venda, desconto, acrescimo, limite_percentual)
 
     def remover_item(self, item_id: int) -> None:
         item = self._obter_item(item_id)

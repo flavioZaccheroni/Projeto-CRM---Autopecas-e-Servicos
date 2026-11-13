@@ -6,6 +6,7 @@ from app.repositories.os_repository import ItemOSRepository, OrdemServicoReposit
 from app.repositories.venda_repository import FinanceiroLancamentoRepository
 from app.services._itens import (
     carregar_produtos,
+    definir_ajuste,
     normalizar_forma_pagamento,
     recalcular_total,
     validar_quantidade_valor,
@@ -80,7 +81,7 @@ class OrdemServicoService:
             valor_total=quantidade_decimal * valor_decimal,
         )
         self.item_repository.salvar(item)
-        ordem.valor_total = Decimal(ordem.valor_total or 0) + item.valor_total
+        recalcular_total(self._session, ordem)
         return item
 
     def atualizar_item(self, item_id: int, quantidade, valor_unitario) -> ItemOS:
@@ -93,6 +94,11 @@ class OrdemServicoService:
         self.item_repository.salvar(item)
         recalcular_total(self._session, ordem)
         return item
+
+    def definir_desconto(self, os_id: int, desconto, acrescimo, limite_percentual=None):
+        """Aplica desconto/acrescimo (R$ ou %) em OS ainda editavel. Devolve (ordem, % de desconto)."""
+        ordem = self._obter_editavel(os_id)
+        return ordem, definir_ajuste(self._session, ordem, desconto, acrescimo, limite_percentual)
 
     def remover_item(self, item_id: int) -> None:
         item = self._obter_item(item_id)

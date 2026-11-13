@@ -2,6 +2,16 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Não lançado]
+
+### Adicionado
+- **Desconto e acréscimo** em vendas/orçamentos e ordens de serviço: informe em R$ ou em % (ex.: `10%`) no detalhe do documento. O total passa a ser itens − desconto + acréscimo e vale também para o financeiro (contas a receber) e o PDF da OS. O desconto nunca passa do subtotal.
+- **Limite de desconto por perfil:** quem não é administrador respeita o parâmetro `desconto.max_percentual` (padrão 10%, em Configurações); administradores não têm limite. Cada ajuste é registrado na auditoria (`DESCONTO`).
+- Migração Alembic `0002` adiciona as colunas `desconto` e `acrescimo` (bancos existentes são atualizados sem perda de dados).
+
+### Corrigido
+- O total de vendas e OS agora é sempre recalculado a partir dos itens, também ao adicionar um item.
+
 ## [3.1.0] — 2026-11-13
 
 ### Adicionado

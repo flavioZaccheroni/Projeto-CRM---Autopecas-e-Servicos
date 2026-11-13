@@ -189,6 +189,15 @@ def test_venda_fluxo_na_pagina(qapp, app_db):
     pagina.acionar(next(a for a in ESPECS_DOC["Vendas"].acoes if a.chave == "aprovar"))
     assert pagina.etapas._indice == 1 and not pagina.botoes["aprovar"].isEnabled() and pagina.botoes["finalizar"].isEnabled()
     assert not pagina.grab().isNull()
+    # desconto e acrescimo: valor ou %, refletido no total; valor invalido vira aviso sem alterar nada
+    assert not pagina.form_ajuste.isHidden()
+    pagina.desconto.setText("10%")
+    pagina.acrescimo.setText("5")
+    pagina.aplicar_ajuste()
+    assert "Total  R$ 95,00" in pagina.total.text() and "Desconto" in pagina.total.text()
+    pagina.desconto.setText("abc")
+    pagina.aplicar_ajuste()
+    assert "Total  R$ 95,00" in pagina.total.text()
 
 
 def test_os_compra_estoque_financeiro_relatorios_constroem(qapp, app_db):
