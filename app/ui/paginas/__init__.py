@@ -16,6 +16,7 @@ def fabricas_de_paginas(usuario) -> dict[str, Callable[[], QWidget]]:
     from app.ui.paginas.financeiro import PaginaFinanceiro
     from app.ui.paginas.relatorios import PaginaRelatorios
     from app.ui.paginas.seguranca import PaginaConfiguracoes, PaginaSeguranca
+    from app.ui.paginas.sobre import PaginaSobre
     from app.ui.paginas.usuarios import PaginaPermissoes, PaginaUsuarios
 
     fabricas: dict[str, Callable[[], QWidget]] = {
@@ -29,6 +30,7 @@ def fabricas_de_paginas(usuario) -> dict[str, Callable[[], QWidget]]:
         "Permissoes": lambda: PaginaPermissoes(usuario),
         "Seguranca e Backup": lambda: PaginaSeguranca(usuario),
         "Configuracoes": lambda: PaginaConfiguracoes(usuario),
+        "Sobre": PaginaSobre,
     }
     if os.environ.get("ERP_UI_GALERIA"):
         from app.ui.paginas.galeria import PaginaGaleria

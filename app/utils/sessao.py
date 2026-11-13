@@ -42,6 +42,7 @@ MENU_PARA_MODULO: dict[str, str | None] = {
     "Usuarios": "usuarios",
     "Permissoes": "permissoes",
     "Configuracoes": "configuracoes",
+    "Sobre": None,
 }
 
 

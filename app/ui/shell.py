@@ -76,6 +76,7 @@ GRUPOS: list[tuple[str, list[ItemMenu]]] = [
             ItemMenu("Usuarios", "Usuários", "usuario"),
             ItemMenu("Permissoes", "Permissões", "cadeado"),
             ItemMenu("Configuracoes", "Configurações", "ajustes"),
+            ItemMenu("Sobre", "Sobre", "info"),
         ],
     ),
 ]
