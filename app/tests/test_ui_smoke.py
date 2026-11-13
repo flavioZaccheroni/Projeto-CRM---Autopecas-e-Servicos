@@ -310,6 +310,17 @@ def test_auditoria_configuracoes_e_backup_constroem(qapp, app_db):
     assert cfg.botao_salvar.isEnabled()
     cfg.salvar_empresa()
     assert cfg.valores["empresa.nome"] == "Auto Peças Teste" and not cfg.botao_salvar.isEnabled()
+    # backup automatico: padroes ligados; salvar grava so o que mudou
+    assert cfg.formulario_backup.valores()["backup.auto"] == "Sim"
+    cfg.formulario_backup.widgets["backup.pasta_extra"].setText("D:/Backups")
+    cfg.formulario_backup.widgets["backup.manter"].setText("20")
+    assert cfg.botao_salvar.isEnabled()
+    cfg.salvar_empresa()
+    assert cfg.valores["backup.pasta_extra"] == "D:/Backups" and cfg.valores["backup.manter"] == "20"
+    assert "backup.auto" not in cfg.valores and "backup.alerta_dias" not in cfg.valores
+    cfg.formulario_backup.widgets["backup.auto"].setCurrentText("Não")
+    cfg.salvar_empresa()
+    assert cfg.valores["backup.auto"] == "nao"
     seg = PaginaSeguranca(admin)
     seg.resize(1200, 700)
     assert seg.kpi_eventos.valor.text() != "-" and not seg.grab().isNull()

@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Não lançado]
+
+### Adicionado
+- **Backup automático:** cria uma cópia `auto_*` ao abrir o sistema (no máximo 1 por dia) e ao fechá-lo (se houve alterações, no máximo 1 por hora), mantém as N mais recentes (padrão 15; backups manuais nunca são apagados) e pode copiar também para outra pasta (outro disco, pen drive ou pasta da nuvem). Configurável em **Configurações → Backup automático**; falhas aparecem como aviso e nunca impedem o uso do sistema.
+- **Pasta de dados gravável:** o executável instalado sem pasta `data` ao lado grava dados, logs e backups em `%LOCALAPPDATA%\ERP_Autopecas` (funciona mesmo em "Arquivos de Programas"). Instalações existentes e o pacote de demonstração (que têm `data/` ao lado do `.exe`) continuam portáteis; `portable.flag` força o modo portátil e `ERP_HOME` aponta para outra pasta.
+
 ## [3.0.1]
 
 ### Adicionado
