@@ -96,7 +96,7 @@ O GitHub Actions executa lint e testes a cada push/PR ([`.github/workflows/ci.ym
 
 ```powershell
 pip install -r requirements-build.txt
-python scripts/build_release.py --version 3.1.0
+python scripts/build_release.py --version 3.2.0
 ```
 
 Gera `releases/ERP_Autopecas_<versão>_windows.zip` (executável PyInstaller em pasta, com dados e backups ao lado do
